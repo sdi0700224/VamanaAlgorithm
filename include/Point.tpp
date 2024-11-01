@@ -53,18 +53,8 @@ bool Point<T>::operator!=(const Point<T> &other) const
 template <typename T>
 double Point<T>::DistanceTo(const Point<T> &other) const
 {
-    if (Coordinates.size() != other.Coordinates.size())
-    {
-        throw invalid_argument("Points must have the same dimensions for distance calculation.");
-    }
-
-    double sum = 0.0;
-    for (size_t i = 0; i < Coordinates.size(); ++i)
-    {
-        double diff = static_cast<double>(Coordinates[i]) - static_cast<double>(other.Coordinates[i]);
-        sum += diff * diff;
-    }
-    return sqrt(sum);
+    double squaredDistance = SquaredDistanceTo(other);
+    return sqrt(max(squaredDistance, 0.0)); // Ensure non-negative before sqrt
 }
 
 template <typename T>

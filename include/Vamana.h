@@ -5,6 +5,7 @@
 #include "GreedySearch.h"
 #include "RobustPrune.h"
 #include "Point.h"
+#include <gtest/gtest.h>
 
 using namespace std;
 
@@ -29,6 +30,9 @@ private:
     RobustPrune<T> RobustPruner;
 
     Point<T> FindMedoid(const vector<Point<T>> &data) const;
+
+    // Allow Google Test to access private methods for testing purposes
+    FRIEND_TEST(VamanaTest, TestFindMedoid);
 };
 
 #include "Vamana.tpp"

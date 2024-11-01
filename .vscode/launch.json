@@ -6,7 +6,15 @@
             "type": "cppdbg",
             "request": "launch",
             "program": "${workspaceFolder}/bin/ConsoleApp",
-            "args": [],
+            "args": [
+                "10",
+                "20",
+                "14",
+                "1",
+                "data/siftsmall/siftsmall_base.fvecs",
+                "data/siftsmall/siftsmall_query.fvecs",
+                "data/siftsmall/siftsmall_groundtruth.fvecs"
+            ],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",
             "environment": [],
