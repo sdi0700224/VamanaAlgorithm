@@ -1,11 +1,11 @@
 # VamanaAlgorithm
-Implementation of vamana algorithm to serve queries
- 
+This project implements the Vamana algorithm, designed for efficient k-nearest neighbor (k-NN) search in high-dimensional data spaces.
+
 # Install Google Test
 sudo apt-get update
 sudo apt-get install libgtest-dev cmake
  
-# Build Google Test
+# Build Google Test (Optional)
 cd /usr/src/gtest
 sudo cmake .
 sudo make
@@ -19,6 +19,3 @@ make test
  
 # Run the main program
 make run
- 
-# Optionally, run the main program with arguments
-make run ARGS="arg1 arg2"
