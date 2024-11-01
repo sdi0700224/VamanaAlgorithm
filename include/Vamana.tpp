@@ -31,9 +31,13 @@ void Vamana<T>::BuildIndex(const vector<Point<T>> &data)
 
             for (const auto &candidate : shuffledData)
             {
-                if (candidate != point && uniqueNeighbors.size() < static_cast<size_t>(R))
+                if (candidate != point)
                 {
                     uniqueNeighbors.insert(candidate);
+                    if (uniqueNeighbors.size() == static_cast<size_t>(R))
+                    {
+                        break;
+                    }
                 }
             }
         }
