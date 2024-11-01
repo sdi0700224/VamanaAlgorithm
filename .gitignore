@@ -7,8 +7,7 @@
 /bin/
 /bin/*
 
-# Ignore data folder
-/data/
+# Ignore data
 /data/*
 
 # Ignore temporary files and editor backups
