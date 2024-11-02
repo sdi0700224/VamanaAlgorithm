@@ -17,13 +17,19 @@ void RobustPrune<T>::Prune(Graph<T> &graph, const Point<T> &p, const vector<Poin
     // Collect all candidates with their squared distances to p
     for (const auto &candidate : candidateNeighbors)
     {
-        double dist = p.SquaredDistanceTo(candidate);
-        candidates.emplace_back(dist, candidate);
+        if (candidate != p) // Ensure candidate is not the point itself
+        {
+            double dist = p.SquaredDistanceTo(candidate);
+            candidates.emplace_back(dist, candidate);
+        }
     }
     for (const auto &neighbor : graph.GetNeighbors(p))
     {
-        double dist = p.SquaredDistanceTo(neighbor);
-        candidates.emplace_back(dist, neighbor);
+        if (neighbor != p) // Ensure neighbor is not the point itself
+        {
+            double dist = p.SquaredDistanceTo(neighbor);
+            candidates.emplace_back(dist, neighbor);
+        }
     }
 
     sort(candidates.begin(), candidates.end(), distanceComparator);
