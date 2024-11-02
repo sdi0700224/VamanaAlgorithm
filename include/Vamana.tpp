@@ -21,34 +21,26 @@ void Vamana<T>::BuildIndex(const vector<Point<T>> &data)
     // Initialize each point in the graph with exactly R unique neighbors
     for (const auto &point : data)
     {
-        vector<Point<T>> randomNeighbors;
         unordered_set<Point<T>> uniqueNeighbors;
-
         while (uniqueNeighbors.size() < static_cast<size_t>(R))
         {
-            vector<Point<T>> shuffledData = data;
-            shuffle(shuffledData.begin(), shuffledData.end(), mt19937{random_device{}()});
+            // Randomly select an index from data
+            size_t randomIndex = randomPermutation[rand() % data.size()];
+            const auto &candidate = data[randomIndex];
 
-            for (const auto &candidate : shuffledData)
+            if (candidate != point) // Ensure the candidate is not the same as the point itself
             {
-                if (candidate != point)
-                {
-                    uniqueNeighbors.insert(candidate);
-                    if (uniqueNeighbors.size() == static_cast<size_t>(R))
-                    {
-                        break;
-                    }
-                }
+                uniqueNeighbors.insert(candidate);
             }
         }
 
-        randomNeighbors.assign(uniqueNeighbors.begin(), uniqueNeighbors.end());
+        vector<Point<T>> randomNeighbors(uniqueNeighbors.begin(), uniqueNeighbors.end());
         VamanaGraph.SetNeighbors(point, randomNeighbors);
     }
 
     // Progress indicator variables
     size_t totalPoints = data.size();
-    size_t progressStep = totalPoints / 100;
+    size_t progressStep = max(totalPoints / 100, static_cast<size_t>(1));
     size_t currentProgress = 0;
 
     for (size_t i = 0; i < randomPermutation.size(); ++i)
@@ -70,7 +62,10 @@ void Vamana<T>::BuildIndex(const vector<Point<T>> &data)
 
             if (outNeighbors.size() + 1 > static_cast<size_t>(R))
             {
-                outNeighbors.push_back(point);
+                if (find(outNeighbors.begin(), outNeighbors.end(), point) == outNeighbors.end())
+                {
+                    outNeighbors.push_back(point); // Only add if point is not already in outNeighbors
+                }
                 RobustPruner.Prune(VamanaGraph, neighbor, outNeighbors, A, R);
             }
             else

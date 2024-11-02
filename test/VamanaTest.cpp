@@ -10,8 +10,9 @@ class VamanaTest : public ::testing::Test
 protected:
     int k = 5;    // Number of neighbors to search for
     int l = 10;   // List size for the search process
-    int r = 5;    // Degree bound
+    int r = 7;    // Degree bound
     double a = 1; // Distance factor for pruning
+    int dataSize = 100;
     Vamana<float> *vamana;
 
     void SetUp() override
@@ -38,7 +39,7 @@ TEST_F(VamanaTest, TestBuildIndex)
     data.reserve(100);
 
     // Generate 100 points with incremental coordinates and IDs
-    for (int i = 0; i < 100; ++i)
+    for (int i = 0; i < dataSize; ++i)
     {
         float x = static_cast<float>(i % 10 + 1);
         float y = static_cast<float>((i / 10) % 10 + 1);
@@ -55,7 +56,7 @@ TEST_F(VamanaTest, TestSearch)
     data.reserve(100);
 
     // Generate 100 points with incremental coordinates and IDs
-    for (int i = 0; i < 100; ++i)
+    for (int i = 0; i < dataSize; ++i)
     {
         float x = static_cast<float>(i % 10 + 1);
         float y = static_cast<float>((i / 10) % 10 + 1);
@@ -72,7 +73,7 @@ TEST_F(VamanaTest, TestSearch)
     auto results = vamana->Search(query, k);
 
     // Check that exactly k neighbors are returned
-    EXPECT_LE(results.size(), k);
+    EXPECT_EQ(results.size(), k);
 
     // Check that distances are non-negative and in ascending order
     float previousDistance = -1.0f;
