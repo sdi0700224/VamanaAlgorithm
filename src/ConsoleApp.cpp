@@ -9,14 +9,14 @@ using namespace std;
 
 int main(int argc, char *argv[])
 {
-    // Check for correct number of arguments
+    //check for correct number of arguments
     if (argc != 8)
     {
         cerr << "Usage: " << argv[0] << " <k> <l> <r> <alpha> <base_dataset_path> <query_dataset_path> <ground_truth_path>" << endl;
         return EXIT_FAILURE;
     }
 
-    // Parse command-line arguments
+    //parse command-line arguments
     int k = stoi(argv[1]);
     int l = stoi(argv[2]);
     int r = stoi(argv[3]);
@@ -37,10 +37,11 @@ int main(int argc, char *argv[])
     DataLoader loader;
     Vamana<float> vamana(k, l, r, a);
 
-    // Load base dataset
+    //load base dataset
     auto start = chrono::steady_clock::now();
     cout << "Loading base dataset..." << endl;
     auto data = loader.LoadFvecs(baseDatasetPath);
+    //check if loading was successful
     if (data.empty())
     {
         cerr << "Failed to load base dataset." << endl;
@@ -50,14 +51,14 @@ int main(int argc, char *argv[])
     auto loadTime = chrono::duration_cast<chrono::milliseconds>(end - start).count();
     cout << "Loaded " << data.size() << " points from the base dataset in " << loadTime << " ms." << endl;
 
-    // Build the index
+    //build the index
     start = chrono::steady_clock::now();
     vamana.BuildIndex(data);
     end = chrono::steady_clock::now();
     auto buildTime = chrono::duration_cast<chrono::milliseconds>(end - start).count();
     cout << "Index built successfully in " << buildTime << " ms." << endl;
 
-    // Load query dataset
+    //load query dataset
     start = chrono::steady_clock::now();
     cout << "Loading query dataset..." << endl;
     auto queries = loader.LoadFvecs(queryDatasetPath);
@@ -70,10 +71,11 @@ int main(int argc, char *argv[])
     auto queryLoadTime = chrono::duration_cast<chrono::milliseconds>(end - start).count();
     cout << "Loaded " << queries.size() << " query points in " << queryLoadTime << " ms." << endl;
 
-    // Load ground truth data
+    //load ground truth data
     start = chrono::steady_clock::now();
     cout << "Loading ground truth data..." << endl;
     auto groundTruth = loader.LoadIvecs(groundTruthPath);
+    //check for errors
     if (groundTruth.empty() || groundTruth.size() != queries.size())
     {
         cerr << "Failed to load ground truth or size mismatch with queries." << endl;
@@ -83,27 +85,31 @@ int main(int argc, char *argv[])
     auto groundTruthLoadTime = chrono::duration_cast<chrono::milliseconds>(end - start).count();
     cout << "Loaded ground truth for " << groundTruth.size() << " queries in " << groundTruthLoadTime << " ms." << endl;
 
-    // Variables for calculating Recall@K
+    //variables for calculating Recall@K
     int totalMatches = 0;
     int totalQueries = queries.size();
 
-    // Perform search and calculate Recall@K
+    //perform search and calculate Recall@K
     start = chrono::steady_clock::now();
+    //for each query
     for (int i = 0; i < totalQueries; ++i)
     {
+        //search to find k-nearest neighbors for the query point
         auto neighbors = vamana.Search(queries[i], k);
 
-        // Using GetIndex to compare with ground truth neighbors
+        //using GetIndex to compare with ground truth neighbors
         unordered_set<int> foundNeighborIndices;
+        //for each neighbor insert index
         for (const auto &neighbor : neighbors)
         {
             foundNeighborIndices.insert(neighbor.GetIndex());
         }
 
-        // Calculate the number of true positives (matches with ground truth)
+        //calculate the number of true positives (matches with ground truth)
         int matchCount = 0;
         for (int gtIndex : groundTruth[i])
         {
+            //if index exist in foundNeighborIndices there is a match
             if (foundNeighborIndices.count(gtIndex) > 0)
             {
                 ++matchCount;
@@ -111,15 +117,16 @@ int main(int argc, char *argv[])
         }
         totalMatches += matchCount;
     }
+    //calculate time
     end = chrono::steady_clock::now();
     auto searchTime = chrono::duration_cast<chrono::milliseconds>(end - start).count();
 
-    // Calculate and display Recall@K
+    //calculate and display Recall@K(the percentage of correct neighbors found by the search algorithm)
     double recallAtK = static_cast<double>(totalMatches) / (totalQueries * k);
     cout << "Recall@K: " << recallAtK * 100 << "%" << endl;
     cout << "Total search and recall calculation time: " << searchTime << " ms." << endl;
 
-    // Summary of timings
+    //summary of timings
     cout << "\nTiming Summary:" << endl;
     cout << " - Base dataset load time: " << loadTime << " ms" << endl;
     cout << " - Index build time: " << buildTime << " ms" << endl;

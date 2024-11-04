@@ -53,25 +53,31 @@ bool Point<T>::operator!=(const Point<T> &other) const
 template <typename T>
 double Point<T>::DistanceTo(const Point<T> &other) const
 {
+    //get the Euclidian squared distance 
     double squaredDistance = SquaredDistanceTo(other);
-    return sqrt(max(squaredDistance, 0.0)); // Ensure non-negative before sqrt
+    //apply sqrt to convert squared Euclidean distance into standard Euclidian distance
+    return sqrt(max(squaredDistance, 0.0)); //ensure non-negative before sqrt
 }
 
 template <typename T>
 double Point<T>::SquaredDistanceTo(const Point<T> &other) const
 {
+    //check dimension compatibility
     if (Coordinates.size() != other.Coordinates.size())
     {
         throw invalid_argument("Points must have the same dimensions for distance calculation.");
     }
 
     double sum = 0.0;
+    //for each dimension i
     for (size_t i = 0; i < Coordinates.size(); ++i)
     {
+        //compute the difference between the coordinates
         double diff = static_cast<double>(Coordinates[i]) - static_cast<double>(other.Coordinates[i]);
+        //square the difference and add it to the sum
         sum += diff * diff;
     }
-    return sum; // Return squared distance without sqrt for better performance
+    return sum; //return squared distance without sqrt for better performance
 }
 
 template <typename T>
