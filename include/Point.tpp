@@ -57,9 +57,11 @@ double Point<T>::DistanceTo(const Point<T> &other) const
     return sqrt(max(squaredDistance, 0.0)); // Ensure non-negative before sqrt
 }
 
+// Squared distance without sqrt for better performance
 template <typename T>
 double Point<T>::SquaredDistanceTo(const Point<T> &other) const
 {
+    // Check dimensions sizes match
     if (Coordinates.size() != other.Coordinates.size())
     {
         throw invalid_argument("Points must have the same dimensions for distance calculation.");
@@ -71,7 +73,7 @@ double Point<T>::SquaredDistanceTo(const Point<T> &other) const
         double diff = static_cast<double>(Coordinates[i]) - static_cast<double>(other.Coordinates[i]);
         sum += diff * diff;
     }
-    return sum; // Return squared distance without sqrt for better performance
+    return sum;
 }
 
 template <typename T>
