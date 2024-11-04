@@ -33,7 +33,6 @@ void CreateTestIvecs(const string &filename, const vector<vector<int>> &data)
     file.close();
 }
 
-// Test fixture for DataLoader tests
 class DataLoaderTest : public ::testing::Test
 {
 protected:
@@ -67,7 +66,7 @@ protected:
             filesystem::remove(testIvecsFile);
         }
 
-        // Remove the test_data directory itself if empty
+        // Remove the test_data directory itself
         filesystem::remove("test_data");
     }
 };
@@ -120,14 +119,14 @@ TEST_F(DataLoaderTest, LoadIvecs_ValidFile)
 TEST_F(DataLoaderTest, LoadFvecs_FileNotFound)
 {
     auto points = loader.LoadFvecs("nonexistent.fvecs");
-    EXPECT_TRUE(points.empty()); // Expect empty result on error
+    EXPECT_TRUE(points.empty()); // Expect empty result
 }
 
 // Test loading a nonexistent .ivecs file
 TEST_F(DataLoaderTest, LoadIvecs_FileNotFound)
 {
     auto groundTruth = loader.LoadIvecs("nonexistent.ivecs");
-    EXPECT_TRUE(groundTruth.empty()); // Expect empty result on error
+    EXPECT_TRUE(groundTruth.empty()); // Expect empty result
 }
 
 // Test loading an empty .fvecs file
@@ -137,7 +136,7 @@ TEST_F(DataLoaderTest, LoadFvecs_EmptyFile)
     file.close();
 
     auto points = loader.LoadFvecs("test_data/empty.fvecs");
-    EXPECT_TRUE(points.empty()); // Expect no points loaded from an empty file
+    EXPECT_TRUE(points.empty()); // Expect no points loaded
 
     remove("test_data/empty.fvecs");
 }
@@ -149,7 +148,7 @@ TEST_F(DataLoaderTest, LoadIvecs_EmptyFile)
     file.close();
 
     auto groundTruth = loader.LoadIvecs("test_data/empty.ivecs");
-    EXPECT_TRUE(groundTruth.empty()); // Expect no data loaded from an empty file
+    EXPECT_TRUE(groundTruth.empty()); // Expect no data loaded
 
     remove("test_data/empty.ivecs");
 }

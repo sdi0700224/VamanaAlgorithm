@@ -14,7 +14,6 @@ using namespace std;
         return ::testing::AssertionFailure() << "Values are not equal: " << val1 << " and " << val2;
 }
 
-// Test fixture for the Point class
 class PointTest : public ::testing::Test
 {
 protected:
