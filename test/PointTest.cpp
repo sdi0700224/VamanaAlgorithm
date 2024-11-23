@@ -33,7 +33,7 @@ protected:
 TEST_F(PointTest, DefaultConstructor)
 {
     Point<int> default_point;
-    EXPECT_EQ(default_point.GetCoordinates().size(), 0);
+    EXPECT_EQ((int)default_point.GetCoordinates().size(), 0);
     EXPECT_EQ(default_point.GetIndex(), -1);
 }
 

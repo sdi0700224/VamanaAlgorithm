@@ -88,7 +88,7 @@ TEST_F(DataLoaderTest, LoadFvecs_ValidFile)
         cerr << endl;
     }
 
-    ASSERT_EQ(points.size(), 2); // Expect two points
+    ASSERT_EQ((int)points.size(), 2); // Expect two points
     EXPECT_EQ(points[0].GetCoordinates(), (vector<float>{1.0, 2.0, 3.0}));
     EXPECT_EQ(points[1].GetCoordinates(), (vector<float>{4.0, 5.0, 6.0}));
 }
@@ -110,7 +110,7 @@ TEST_F(DataLoaderTest, LoadIvecs_ValidFile)
         cerr << endl;
     }
 
-    ASSERT_EQ(groundTruth.size(), 2); // Expect two entries
+    ASSERT_EQ((int)groundTruth.size(), 2); // Expect two entries
     EXPECT_EQ(groundTruth[0], (vector<int>{1, 2, 3}));
     EXPECT_EQ(groundTruth[1], (vector<int>{4, 5, 6}));
 }

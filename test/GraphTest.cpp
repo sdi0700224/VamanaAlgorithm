@@ -38,7 +38,7 @@ TEST_F(GraphTest, AddDirectedEdge)
     auto neighbors1 = graph.GetNeighbors(point1);
     auto neighbors2 = graph.GetNeighbors(point2);
 
-    ASSERT_EQ(neighbors1.size(), 1);
+    ASSERT_EQ((int)neighbors1.size(), 1);
     EXPECT_EQ(neighbors1[0], point2); // Point1 should have Point2 as a neighbor
 
     EXPECT_TRUE(neighbors2.empty()); // Point2 should not have Point1 as a neighbor (directed)
@@ -52,7 +52,7 @@ TEST_F(GraphTest, GetNeighbors)
     graph.AddEdge(point1, point2);
 
     auto neighbors = graph.GetNeighbors(point1);
-    ASSERT_EQ(neighbors.size(), 1);
+    ASSERT_EQ((int)neighbors.size(), 1);
     EXPECT_EQ(neighbors[0], point2);
 
     auto neighbors2 = graph.GetNeighbors(point2);
@@ -89,7 +89,7 @@ TEST_F(GraphTest, DuplicateDirectedEdge)
     graph.AddEdge(point1, point2); // Attempt to add the same directed edge again
 
     auto neighbors1 = graph.GetNeighbors(point1);
-    EXPECT_EQ(neighbors1.size(), 1); // Ensure only one entry for point2 in point1's neighbors
+    EXPECT_EQ((int)neighbors1.size(), 1); // Ensure only one entry for point2 in point1's neighbors
 }
 
 // Test adding multiple directed edges from one point to different points
@@ -102,7 +102,7 @@ TEST_F(GraphTest, MultipleDirectedEdgesFromOnePoint)
     graph.AddEdge(point1, point3);
 
     auto neighbors1 = graph.GetNeighbors(point1);
-    ASSERT_EQ(neighbors1.size(), 2);
+    ASSERT_EQ((int)neighbors1.size(), 2);
     EXPECT_EQ(neighbors1[0], point2);
     EXPECT_EQ(neighbors1[1], point3);
 

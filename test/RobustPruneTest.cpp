@@ -57,7 +57,7 @@ TEST_F(RobustPruneDoubleTest, PruneReducesToDegreeBound)
     pruner.Prune(graph, p, candidateNeighbors, distanceThreshold, degreeBound);
 
     auto neighbors = graph.GetNeighbors(p);
-    EXPECT_EQ(neighbors.size(), degreeBound) << "Failed at PruneReducesToDegreeBound: Expected " << degreeBound << " neighbors, but got " << neighbors.size();
+    EXPECT_EQ((int)neighbors.size(), degreeBound) << "Failed at PruneReducesToDegreeBound: Expected " << degreeBound << " neighbors, but got " << neighbors.size();
 }
 
 TEST_F(RobustPruneDoubleTest, PruneWithDegreeBoundGreaterThanCandidates)
@@ -99,7 +99,7 @@ TEST_F(RobustPruneDoubleTest, PruneWithInitialNeighbors)
     pruner.Prune(graph, p, candidateNeighbors, distanceThreshold, degreeBound);
 
     auto neighbors = graph.GetNeighbors(p);
-    EXPECT_EQ(neighbors.size(), 3) << "Failed at PruneWithInitialNeighbors: Expected 3 neighbors, but got " << neighbors.size();
+    EXPECT_EQ((int)neighbors.size(), 3) << "Failed at PruneWithInitialNeighbors: Expected 3 neighbors, but got " << neighbors.size();
 
     vector<Point<double>> expectedNeighbors = {
         existingNeighbor,

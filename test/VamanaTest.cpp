@@ -73,7 +73,7 @@ TEST_F(VamanaTest, TestSearch)
     auto results = vamana->Search(query, k);
 
     // Check that exactly k neighbors are returned
-    EXPECT_EQ(results.size(), k);
+    EXPECT_EQ((int)results.size(), k);
 
     // Check that distances are non-negative and in ascending order
     float previousDistance = -1.0f;

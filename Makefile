@@ -9,6 +9,12 @@ BUILD_DIR = obj
 BIN_DIR = bin
 DATA_DIR = data
 
+# Google Test directories
+GTEST_DIR = third_party/googletest
+GTEST_SRC = $(GTEST_DIR)/googletest/src/gtest-all.cc
+GTEST_MAIN_SRC = $(GTEST_DIR)/googletest/src/gtest_main.cc
+GTEST_INC = $(GTEST_DIR)/googletest/include $(GTEST_DIR)/googletest $(GTEST_DIR)/googletest/src
+
 # Source files
 SOURCES = $(SRC_DIR)/ConsoleApp.cpp $(SRC_DIR)/DataLoader.cpp
 OBJECTS = $(SOURCES:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
@@ -21,9 +27,13 @@ NON_APP_OBJECTS = $(filter-out $(BUILD_DIR)/ConsoleApp.o, $(OBJECTS))
 TEST_SOURCES = $(wildcard $(TEST_DIR)/*.cpp)
 TEST_OBJECTS = $(TEST_SOURCES:$(TEST_DIR)/%.cpp=$(BUILD_DIR)/%.o)
 TEST_DEPS = $(TEST_OBJECTS:.o=.d)
-TEST_TARGET = $(BIN_DIR)/tests
 
-# Executable target
+# Google Test objects
+GTEST_OBJECT = $(BUILD_DIR)/gtest-all.o
+GTEST_MAIN_OBJECT = $(BUILD_DIR)/gtest_main.o
+
+# Targets
+TEST_TARGET = $(BIN_DIR)/tests
 TARGET = $(BIN_DIR)/ConsoleApp
 
 # Dataset directory
@@ -38,6 +48,9 @@ BASE_DATASET = $(DATA_DIR)/$(DATASET)/$(DATASET)_base.fvecs
 QUERY_DATASET = $(DATA_DIR)/$(DATASET)/$(DATASET)_query.fvecs
 GROUND_TRUTH = $(DATA_DIR)/$(DATASET)/$(DATASET)_groundtruth.ivecs
 
+# Add Google Test include directories
+CXXFLAGS += $(addprefix -I, $(GTEST_INC))
+
 # Build rules
 all: $(TARGET)
 
@@ -45,10 +58,19 @@ $(TARGET): $(OBJECTS)
 	@mkdir -p $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-# Compile test files with non-app objects
-$(TEST_TARGET): $(TEST_OBJECTS) $(NON_APP_OBJECTS)
+# Build Google Test objects
+$(GTEST_OBJECT): $(GTEST_SRC)
+	@mkdir -p $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+
+$(GTEST_MAIN_OBJECT): $(GTEST_MAIN_SRC)
+	@mkdir -p $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+
+# Compile test files with non-app objects and Google Test
+$(TEST_TARGET): $(TEST_OBJECTS) $(NON_APP_OBJECTS) $(GTEST_OBJECT) $(GTEST_MAIN_OBJECT)
 	@mkdir -p $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -o $@ $^ -lgtest -lgtest_main -pthread
+	$(CXX) $(CXXFLAGS) -o $@ $^ -pthread
 
 # Compile source files and generate .d files for dependencies
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
