@@ -1,43 +1,79 @@
 name: Build and Test
 
 on:
-  push:
+  push:  # Trigger on pushes to any branch
     branches:
-      - main
-  pull_request:
+      - '**'
+  pull_request:  # Trigger on pull requests targeting master
     branches:
-      - main
+      - master
 
 jobs:
-  build_job:
-    runs-on: ubuntu-22.04
+  build_and_test:
+    runs-on: ubuntu-latest
 
     steps:
-      # Checkout the repository and initialize submodules
+      # Step 1: Set up Node.js 20 (if needed by the project)
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+
+      # Step 2: Checkout the repository and initialize submodules
       - name: Checkout Repository
         uses: actions/checkout@v3
         with:
           submodules: recursive
 
-      # Install required dependencies
+      # Step 3: Debug - Verify repository structure
+      - name: Debug Repository Structure
+        run: |
+          echo "Repository structure:"
+          ls -R
+
+      # Step 4: Install required dependencies
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc g++ cmake valgrind
+          sudo apt-get install -y gcc g++ cmake make valgrind
 
-      # Build the project
+      # Step 5: Build the main project
       - name: Build Project
         run: |
-          make clean
+          make clean || true
           make all
 
-      # Run the tests
+      # Step 6: Debug - Verify project build outputs
+      - name: Debug Project Build Outputs
+        run: |
+          echo "Project build outputs:"
+          ls -R ./bin
+
+      # Step 7: Build Tests
+      - name: Build Tests
+        run: |
+          make test-build
+
+      # Step 8: Debug - Verify test build outputs
+      - name: Debug Test Build Outputs
+        run: |
+          echo "Test build outputs:"
+          ls -R ./bin
+
+      # Step 9: Run Tests
       - name: Run Tests
         run: |
-          make test
+          make test-run
 
-      # (Optional) Run memory checks with Valgrind
+      # Step 10: Memory Check with Valgrind
       - name: Memory Check with Valgrind
         if: always()
         run: |
-          valgrind --leak-check=full ./bin/tests
+          echo "Checking test binary with Valgrind:"
+          ls -l ./bin/
+          if [ -f "./bin/tests" ]; then
+            valgrind --leak-check=full ./bin/tests
+          else
+            echo "Error: Test binary ./bin/tests not found."
+            exit 1
+          fi

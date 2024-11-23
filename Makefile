@@ -67,10 +67,19 @@ $(GTEST_MAIN_OBJECT): $(GTEST_MAIN_SRC)
 	@mkdir -p $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
-# Compile test files with non-app objects and Google Test
-$(TEST_TARGET): $(TEST_OBJECTS) $(NON_APP_OBJECTS) $(GTEST_OBJECT) $(GTEST_MAIN_OBJECT)
+# Build tests
+test-build: $(TEST_OBJECTS) $(NON_APP_OBJECTS) $(GTEST_OBJECT) $(GTEST_MAIN_OBJECT)
 	@mkdir -p $(BIN_DIR)
-	$(CXX) $(CXXFLAGS) -o $@ $^ -pthread
+	$(CXX) $(CXXFLAGS) -o $(TEST_TARGET) $^ -pthread
+	@echo "Tests built successfully."
+
+# Run tests
+test-run: $(TEST_TARGET)
+	@if [ -n "$(TEST_FILTER)" ]; then \
+		./$(TEST_TARGET) --gtest_filter=$(TEST_FILTER); \
+	else \
+		./$(TEST_TARGET); \
+	fi
 
 # Compile source files and generate .d files for dependencies
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.cpp
@@ -90,14 +99,6 @@ clean:
 run: $(TARGET)
 	./$(TARGET) $(K) $(L) $(R) $(A) $(BASE_DATASET) $(QUERY_DATASET) $(GROUND_TRUTH)
 
-# Run all tests, or a specific test if TEST_FILTER is provided
-test: $(TEST_TARGET)
-	@if [ -n "$(TEST_FILTER)" ]; then \
-		./$(TEST_TARGET) --gtest_filter=$(TEST_FILTER); \
-	else \
-		./$(TEST_TARGET); \
-	fi
-
 # Debug with Valgrind and run with arguments
 debug: CXXFLAGS += -O0 -g
 debug: clean $(TARGET)
@@ -106,4 +107,4 @@ debug: clean $(TARGET)
 # Include the dependency files if they exist
 -include $(DEPS) $(TEST_DEPS)
 
-.PHONY: all clean run debug test
+.PHONY: all clean run debug test test-run
