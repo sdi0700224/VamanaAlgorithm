@@ -9,6 +9,7 @@
 
 using namespace std;
 
+// Dummy comment
 template <typename Func>
 auto MeasureExecutionTime(const string &taskName, Func &&func)
 {
