@@ -1,16 +1,16 @@
 name: Build and Test
 
 on:
-  push:
+  push:  # Trigger on pushes to any branch
     branches:
-      - main
-  pull_request:
+      - '**'
+  pull_request:  # Trigger on pull requests targeting master
     branches:
-      - main
+      - master
 
 jobs:
   build_job:
-    runs-on: ubuntu-22.04
+    runs-on: ubuntu-latest
 
     steps:
       # Checkout the repository and initialize submodules
@@ -19,25 +19,44 @@ jobs:
         with:
           submodules: recursive
 
+      # Debug: Verify repository structure
+      - name: Debug Repository Structure
+        run: |
+          echo "Repository structure:"
+          ls -R
+
       # Install required dependencies
       - name: Install Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y gcc g++ cmake valgrind
+          sudo apt-get install -y gcc g++ cmake make valgrind
 
       # Build the project
       - name: Build Project
         run: |
-          make clean
+          make clean || true
           make all
+
+      # Debug: Verify build outputs
+      - name: Debug Build Outputs
+        run: |
+          echo "Build outputs:"
+          ls -R
 
       # Run the tests
       - name: Run Tests
         run: |
           make test
 
-      # (Optional) Run memory checks with Valgrind
+      # Memory Check with Valgrind
       - name: Memory Check with Valgrind
         if: always()
         run: |
-          valgrind --leak-check=full ./bin/tests
+          echo "Checking test binary:"
+          ls -l ./bin/
+          if [ -f "./bin/tests" ]; then
+            valgrind --leak-check=full ./bin/tests
+          else
+            echo "Error: Test binary ./bin/tests not found."
+            exit 1
+          fi
