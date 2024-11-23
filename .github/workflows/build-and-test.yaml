@@ -1,0 +1,43 @@
+name: Build and Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  build_job:
+    runs-on: ubuntu-22.04
+
+    steps:
+      # Checkout the repository and initialize submodules
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+        with:
+          submodules: recursive
+
+      # Install required dependencies
+      - name: Install Dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y gcc g++ cmake valgrind
+
+      # Build the project
+      - name: Build Project
+        run: |
+          make clean
+          make all
+
+      # Run the tests
+      - name: Run Tests
+        run: |
+          make test
+
+      # (Optional) Run memory checks with Valgrind
+      - name: Memory Check with Valgrind
+        if: always()
+        run: |
+          valgrind --leak-check=full ./bin/tests
