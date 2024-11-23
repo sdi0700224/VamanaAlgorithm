@@ -85,7 +85,7 @@ TEST_F(GreedySearchTest, FindApproximateNeighbors_SufficientCandidates)
     }
     cerr << endl;
 
-    ASSERT_EQ(neighbors.size(), numResults);
+    ASSERT_EQ((int)neighbors.size(), numResults);
     EXPECT_EQ(neighbors[0], point1);
     EXPECT_EQ(neighbors[1], point2);
     EXPECT_EQ(neighbors[2], point3);
@@ -127,7 +127,7 @@ TEST_F(GreedySearchTest, FindApproximateNeighbors_LargerGraph)
     cerr << endl;
 
     // Verify the neighbors list matches the requested number of results
-    ASSERT_EQ(neighbors.size(), numResults);
+    ASSERT_EQ((int)neighbors.size(), numResults);
 }
 
 // Test with more expected results
@@ -142,7 +142,7 @@ TEST_F(GreedySearchTest, FindApproximateNeighbors_ExpectedOutput_LargerGraph)
     const auto &visited = result.second;
 
     // Verify the neighbors match expected points
-    ASSERT_EQ(neighbors.size(), numResults);
+    ASSERT_EQ((int)neighbors.size(), numResults);
     EXPECT_EQ(neighbors[0].GetIndex(), 1);
     EXPECT_EQ(neighbors[0].GetCoordinates(), vector<float>({1, 2}));
 
