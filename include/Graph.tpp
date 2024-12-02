@@ -23,6 +23,7 @@ void Graph<T>::AddEdge(const Point<T> &point1, const Point<T> &point2)
 template <typename T>
 const vector<Point<T>> &Graph<T>::GetNeighbors(const Point<T> &point) const
 {
+    static const vector<Point<T>> emptyVector; // Avoid reallocation
     auto it = AdjacencyList.find(point);
     if (it != AdjacencyList.end())
     {
@@ -30,7 +31,7 @@ const vector<Point<T>> &Graph<T>::GetNeighbors(const Point<T> &point) const
     }
     else
     {
-        throw runtime_error("Point not found in the graph");
+        return emptyVector;
     }
 }
 

@@ -21,16 +21,23 @@ namespace std
 }
 
 template <typename T>
-Point<T>::Point() : Coordinates(), Index(-1) {} // Initialize index to -1
+Point<T>::Point() : Index(-1), Filter(-1), Coordinates() {}
 
 template <typename T>
-Point<T>::Point(const vector<T> &coordinates) : Coordinates(coordinates), Index(-1) {} // Default index
+Point<T>::Point(const vector<T> &coordinates)
+    : Index(-1), Filter(-1), Coordinates(coordinates) {}
 
 template <typename T>
-Point<T>::Point(const vector<T> &coordinates, int index) : Coordinates(coordinates), Index(index) {}
+Point<T>::Point(const vector<T> &coordinates, int index)
+    : Index(index), Filter(-1), Coordinates(coordinates) {}
 
 template <typename T>
-Point<T>::Point(const Point<T> &other) : Coordinates(other.Coordinates), Index(other.Index) {}
+Point<T>::Point(const vector<T> &coordinates, T filter, int index)
+    : Index(index), Filter(filter), Coordinates(coordinates) {}
+
+template <typename T>
+Point<T>::Point(const Point &other)
+    : Index(other.Index), Filter(other.Filter), Coordinates(other.Coordinates) {}
 
 template <typename T>
 bool Point<T>::operator==(const Point<T> &other) const
@@ -48,6 +55,18 @@ template <typename T>
 bool Point<T>::operator!=(const Point<T> &other) const
 {
     return !(*this == other);
+}
+
+template <typename T>
+Point<T> &Point<T>::operator=(const Point &other)
+{
+    if (this != &other)
+    {
+        Index = other.Index;
+        Filter = other.Filter;
+        Coordinates = other.Coordinates;
+    }
+    return *this;
 }
 
 template <typename T>
@@ -86,6 +105,12 @@ template <typename T>
 int Point<T>::GetIndex() const
 {
     return Index;
+}
+
+template <typename T>
+T Point<T>::GetFilter() const
+{
+    return Filter;
 }
 
 template <typename U>
