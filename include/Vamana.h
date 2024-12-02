@@ -30,7 +30,7 @@ private:
     unordered_map<T, vector<int>> CreateFilterMap(const vector<Point<T>> &data);
     unordered_map<T, int> FindFilterMedoids(const unordered_map<T, vector<int>> &filterMap,
                                             int threshold) const;
-    Point<T> FindMedoid(const vector<Point<T>> &data) const;
+    Point<T> FindMedoid(const vector<Point<T>> &data, bool printMedoid = false) const;
     vector<Point<T>> PerformSearch(const Graph<T> &graph, const vector<Point<T>> &data,
                                    const Point<T> &query, const unordered_set<T> &filters) const;
 

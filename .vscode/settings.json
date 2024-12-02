@@ -17,6 +17,9 @@
         "tuple": "cpp",
         "type_traits": "cpp",
         "utility": "cpp",
-        "chrono": "cpp"
+        "chrono": "cpp",
+        "iostream": "cpp",
+        "text_encoding": "cpp",
+        "ostream": "cpp"
     }
 }

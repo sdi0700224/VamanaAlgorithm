@@ -13,36 +13,36 @@ Vamana<T>::Vamana(int k, int L, int R, double a)
 template <typename T>
 void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data)
 {
-    // Step 1: Find the medoid of each filter using the filterMap for efficiency
+    // Find medoid of each filter using the filterMap for efficiency
     FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
 
-    // Step 2: Generate a random permutation of the dataset
+    // Generate a random permutation of the dataset
     vector<int> randomPermutation(data.size());
     iota(randomPermutation.begin(), randomPermutation.end(), 0);
     shuffle(randomPermutation.begin(), randomPermutation.end(), mt19937{random_device{}()});
 
     size_t total = randomPermutation.size();
-    size_t step = max(total / 100, static_cast<size_t>(1)); // Progress bar updates every 1%
+    size_t step = max(total / 100, static_cast<size_t>(1));
 
-    // Step 3: Iterate through points in random order
+    // Iterate through points in random order
     for (size_t idx = 0; idx < total; ++idx)
     {
         size_t i = randomPermutation[idx];
         const auto &currentPoint = data[i];
         T currentFilter = currentPoint.GetFilter();
 
-        // Step 3.1: Get the medoid (start node) for the current point's filter
+        // Get the medoid (start node) for the current point's filter
         const auto &startNode = data[FilterMedoids[currentFilter]];
 
-        // Step 3.2: Perform FilteredGreedySearch restricted to the current filter
-        auto [_, visited] = Searcher.FilteredGreedySearch(
-            FilteredGraph, currentPoint, {currentFilter}, // Restrict search to the same filter
-            {startNode}, 0, L);
+        // Perform FilteredGreedySearch relative to the current filter
+        auto [_, visited] =
+            Searcher.FilteredGreedySearch(FilteredGraph, currentPoint,
+                                          {currentFilter}, {startNode}, 0, L);
 
-        // Step 3.3: Apply RobustPrune to prune the visited nodes
+        // Apply RobustPrune to visited nodes
         Pruner.FilteredRobustPrune(FilteredGraph, currentPoint, visited, A, R);
 
-        // Step 3.4: Update out-neighbors of the current point and ensure degree constraints
+        // Update out-neighbors of the current point
         for (const auto &neighbor : FilteredGraph.GetNeighbors(currentPoint))
         {
             auto outNeighbors = FilteredGraph.GetNeighbors(neighbor);
@@ -61,7 +61,7 @@ void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data)
             }
         }
 
-        // Step 3.5: Update progress bar
+        // Update progress bar
         if (idx % step == 0 || idx == total - 1)
         {
             int progress = static_cast<int>((100.0 * idx) / total);
@@ -70,7 +70,6 @@ void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data)
         }
     }
 
-    // Finalize the progress bar
     cout << "\rProgress: 100% [" << string(50, '=') << "] Done!" << endl;
 }
 
@@ -113,7 +112,7 @@ unordered_map<T, int> Vamana<T>::FindFilterMedoids(const unordered_map<T, vector
                                     ? min(threshold, static_cast<int>(pointIDs.size()))
                                     : static_cast<int>(pointIDs.size());
 
-        // Randomly sample `threshold` points from pointIDs
+        // Randomly sample threshold points from pointIDs
         auto sampledPoints = SampleRandomPoints(pointIDs, numPointsToSample);
 
         // Find the point in the sample with the smallest load
@@ -162,7 +161,7 @@ vector<Point<T>> Vamana<T>::PerformSearch(const Graph<T> &graph, const vector<Po
     }
     else
     {
-        // If filters are specified, process only the specified filters
+        // If filter is specified, process only the specified filters
         for (const auto &filter : localFilters)
         {
             if (FilterMedoids.find(filter) != FilterMedoids.end())
@@ -187,14 +186,14 @@ template <typename T>
 vector<Point<T>> Vamana<T>::FilteredSearch(const vector<Point<T>> &data, const Point<T> &query, const unordered_set<T> &filters) const
 {
     return PerformSearch(
-        FilteredGraph, // Use the FilteredGraph for this search
+        FilteredGraph,
         data,
         query,
         filters);
 }
 
 template <typename T>
-Point<T> Vamana<T>::FindMedoid(const vector<Point<T>> &data) const
+Point<T> Vamana<T>::FindMedoid(const vector<Point<T>> &data, bool printMedoid = false) const
 {
     T minDistSum = numeric_limits<T>::max(); // Initialize to max possible value
     Point<T> medoid = data[0];
@@ -216,7 +215,10 @@ Point<T> Vamana<T>::FindMedoid(const vector<Point<T>> &data) const
         }
     }
 
-    // cout << "Medoid point found: " << medoid << endl;
+    if (printMedoid)
+    {
+        cout << "Medoid point found: " << medoid << endl;
+    }
 
     return medoid;
 }
@@ -337,8 +339,7 @@ void Vamana<T>::StitchedVamanaIndexing(
     {
         if (groupPoints.size() < 2)
         {
-            // Skip groups with fewer than 2 points
-            continue;
+            continue; // Skip groups with fewer than 2 points
         }
 
         // Adjust parameters to ensure they are within valid bounds
@@ -349,7 +350,6 @@ void Vamana<T>::StitchedVamanaIndexing(
         int minR = static_cast<int>(ceil(log2(groupPoints.size()))); // Ceil to round up
         int effectiveR = min(max(minR, R_small), (static_cast<int>(groupPoints.size() - 1)));
 
-        // Debug: Print values used for this Vamana indexing
         cout << "Processing label: " << label << endl;
         cout << "Group size: " << groupPoints.size() << endl;
         cout << "Effective K: " << effectiveK << endl;
@@ -357,10 +357,7 @@ void Vamana<T>::StitchedVamanaIndexing(
         cout << "Effective R: " << effectiveR << endl
              << endl;
 
-        // Create a new Vamana instance for this group
         Vamana<T> vamana(effectiveK, effectiveL, effectiveR, A);
-
-        // Index the group points using Vamana
         vamana.VamanaIndexing(groupPoints);
 
         // Integrate the Vamana subgraph into the main graph
@@ -385,7 +382,7 @@ void Vamana<T>::StitchedVamanaIndexing(
         }
     }
 
-    // Apply robust pruning to finalize the stitched graph
+    // Apply robust pruning to create the stitched graph
     RobustPruner<T> pruner;
     for (const auto &point : data)
     {
@@ -393,7 +390,11 @@ void Vamana<T>::StitchedVamanaIndexing(
         pruner.FilteredRobustPrune(StitchedGraph, point, neighbors, A, R_stitched);
     }
 
-    FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
+    // Find FilterMedoids, to be able to search later
+    if (FilterMedoids.empty())
+    {
+        FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
+    }
 }
 
 template <typename T>
