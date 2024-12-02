@@ -1,7 +1,10 @@
 #pragma once
 
-#include <string>
 #include <vector>
+#include <string>
+#include <fstream>
+#include <iostream>
+#include <cstdint>
 #include "Point.h"
 
 using namespace std;
@@ -9,8 +12,10 @@ using namespace std;
 class DataLoader
 {
 public:
-    DataLoader() = default;
+    static vector<Point<float>> LoadDataset(const string &filename);
+    static vector<vector<float>> LoadQuerySet(const string &filename);
+    static vector<vector<int>> ReadGroundTruth(const string &gt_path, const int num_dimensions);
 
-    vector<Point<float>> LoadFvecs(const string &filename);
-    vector<vector<int>> LoadIvecs(const string &filename);
+    static vector<Point<float>> LoadFvecs(const string &filename);
+    static vector<vector<int>> LoadIvecs(const string &filename);
 };
