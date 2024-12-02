@@ -333,6 +333,7 @@ void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small
     auto filterMap = CreateFilterMap(data);
     unordered_map<T, vector<Point<T>>> labelGroups;
 
+    // Group points by their filters
     for (const auto &[filter, pointIDs] : filterMap)
     {
         for (const auto &pointID : pointIDs)
@@ -343,20 +344,30 @@ void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small
 
     ofstream logFile("stitched_vamana.log");
 
+    size_t totalGroups = labelGroups.size();
+    size_t step = max(totalGroups / 100, static_cast<size_t>(1)); // Ensure step is at least 1
+    size_t processedGroups = 0;
+
     // Process each group independently
     for (const auto &[label, groupPoints] : labelGroups)
     {
+        // Skip groups with fewer than 2 points
         if (groupPoints.size() < 2)
         {
-            continue; // Skip groups with fewer than 2 points
+            ++processedGroups;
+            if (processedGroups % step == 0 || processedGroups == totalGroups)
+            {
+                UpdateProgressBar(processedGroups, totalGroups, "Stitched Vamana Indexing");
+            }
+            continue;
         }
 
         // Adjust parameters to ensure they are within valid bounds
-        int effectiveL = min(L_small, static_cast<int>(groupPoints.size()));
-        int effectiveK = min(K, static_cast<int>(groupPoints.size()));
-        // Ensure R is more than log2 data size but less than data size
-        int minR = static_cast<int>(ceil(log2(groupPoints.size()))); // Ceil to round up
-        int effectiveR = min(max(minR, R_small), static_cast<int>(groupPoints.size() - 1));
+        int effectiveL = min(L_small, static_cast<int>(groupPoints.size())); // Use the smaller of L_small or group size
+        int effectiveK = min(K, static_cast<int>(groupPoints.size()));       // Use the smaller of K or group size
+        // Ensure R is more than log2(data size) but less than data size
+        int minR = static_cast<int>(ceil(log2(groupPoints.size())));                        // Round up
+        int effectiveR = min(max(minR, R_small), static_cast<int>(groupPoints.size() - 1)); // Keep within bounds
 
         logFile << "Processing label: " << label << endl;
         logFile << "Group size: " << groupPoints.size() << endl;
@@ -366,7 +377,12 @@ void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small
                 << endl;
 
         Vamana<T> vamana(effectiveK, effectiveL, effectiveR, A);
-        vamana.VamanaIndexing(groupPoints);
+
+        // Redirect cout to log file during VamanaIndexing
+        streambuf *coutBuffer = cout.rdbuf(); // Save the current buffer for cout
+        cout.rdbuf(logFile.rdbuf());          // Redirect cout to log file
+        vamana.VamanaIndexing(groupPoints);   // Perform Vamana indexing for the current group
+        cout.rdbuf(coutBuffer);               // Restore cout to its original buffer
 
         // Integrate the Vamana subgraph into the main graph
         for (const auto &point : groupPoints)
@@ -385,8 +401,15 @@ void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small
             sort(mergedNeighbors.begin(), mergedNeighbors.end());
             mergedNeighbors.erase(unique(mergedNeighbors.begin(), mergedNeighbors.end()), mergedNeighbors.end());
 
-            // Update the graph with the merged neighbors
+            // Update the stitched graph with the merged neighbors
             StitchedGraph.SetNeighbors(point, mergedNeighbors);
+        }
+
+        ++processedGroups;
+        // Update progress bar only at intervals defined by step
+        if (processedGroups % step == 0 || processedGroups == totalGroups)
+        {
+            UpdateProgressBar(processedGroups, totalGroups, "Stitched Vamana Indexing");
         }
     }
 
