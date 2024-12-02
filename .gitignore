@@ -7,9 +7,6 @@
 /bin/
 /bin/*
 
-# Ignore data
-/data/*
-
 # Ignore temporary files and editor backups
 *.swp
 *.swo
