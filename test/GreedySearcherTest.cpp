@@ -1,4 +1,4 @@
-#include "GreedySearch.h"
+#include "GreedySearcher.h"
 #include "Graph.h"
 #include "Point.h"
 #include <gtest/gtest.h>
@@ -6,11 +6,11 @@
 
 using namespace std;
 
-class GreedySearchTest : public ::testing::Test
+class GreedySearcherTest : public ::testing::Test
 {
 protected:
     Graph<float> graph;
-    GreedySearch<float> search;
+    GreedySearcher<float> search;
     Point<float> point1, point2, point3, point4, point5, point6, point7, point8, point9, queryPoint;
 
     void SetUp() override
@@ -51,12 +51,12 @@ protected:
 };
 
 // Test finding approximate neighbors with sufficient candidates
-TEST_F(GreedySearchTest, FindApproximateNeighbors_SufficientCandidates)
+TEST_F(GreedySearcherTest, FindApproximateNeighbors_SufficientCandidates)
 {
     int numResults = 3;
     int maxCandidates = 4;
 
-    auto result = search.FindApproximateNeighbors(graph, point1, queryPoint, numResults, maxCandidates);
+    auto result = search.GreedySearch(graph, point1, queryPoint, numResults, maxCandidates);
 
     const auto &neighbors = result.first;
     const auto &visited = result.second;
@@ -92,12 +92,12 @@ TEST_F(GreedySearchTest, FindApproximateNeighbors_SufficientCandidates)
 }
 
 // Test with a larger graph
-TEST_F(GreedySearchTest, FindApproximateNeighbors_LargerGraph)
+TEST_F(GreedySearcherTest, FindApproximateNeighbors_LargerGraph)
 {
     int numResults = 5;
     int maxCandidates = 10;
 
-    auto result = search.FindApproximateNeighbors(graph, point1, queryPoint, numResults, maxCandidates);
+    auto result = search.GreedySearch(graph, point1, queryPoint, numResults, maxCandidates);
 
     const auto &neighbors = result.first;
     const auto &visited = result.second;
@@ -131,12 +131,12 @@ TEST_F(GreedySearchTest, FindApproximateNeighbors_LargerGraph)
 }
 
 // Test with more expected results
-TEST_F(GreedySearchTest, FindApproximateNeighbors_ExpectedOutput_LargerGraph)
+TEST_F(GreedySearcherTest, FindApproximateNeighbors_ExpectedOutput_LargerGraph)
 {
     int numResults = 5;
     int maxCandidates = 10;
 
-    auto result = search.FindApproximateNeighbors(graph, point1, queryPoint, numResults, maxCandidates);
+    auto result = search.GreedySearch(graph, point1, queryPoint, numResults, maxCandidates);
 
     const auto &neighbors = result.first;
     const auto &visited = result.second;

@@ -1,5 +1,5 @@
 #include "gtest/gtest.h"
-#include "RobustPrune.h"
+#include "RobustPruner.h"
 #include "Graph.h"
 #include "Point.h"
 #include <vector>
@@ -9,12 +9,12 @@
 using namespace std;
 
 template <typename T>
-class RobustPruneTest : public ::testing::Test
+class RobustPrunerTest : public ::testing::Test
 {
 protected:
     Graph<T> graph;
     Point<T> p;
-    RobustPrune<T> pruner;
+    RobustPruner<T> pruner;
 
     void SetUp() override
     {
@@ -39,7 +39,7 @@ protected:
     }
 };
 
-typedef RobustPruneTest<double> RobustPruneDoubleTest;
+typedef RobustPrunerTest<double> RobustPruneDoubleTest;
 
 TEST_F(RobustPruneDoubleTest, PruneReducesToDegreeBound)
 {
@@ -54,7 +54,7 @@ TEST_F(RobustPruneDoubleTest, PruneReducesToDegreeBound)
     double distanceThreshold = 1.5;
     int degreeBound = 3;
 
-    pruner.Prune(graph, p, candidateNeighbors, distanceThreshold, degreeBound);
+    pruner.RobustPrune(graph, p, candidateNeighbors, distanceThreshold, degreeBound);
 
     auto neighbors = graph.GetNeighbors(p);
     EXPECT_EQ((int)neighbors.size(), degreeBound) << "Failed at PruneReducesToDegreeBound: Expected " << degreeBound << " neighbors, but got " << neighbors.size();
@@ -70,7 +70,7 @@ TEST_F(RobustPruneDoubleTest, PruneWithDegreeBoundGreaterThanCandidates)
     double distanceThreshold = 1.5;
     int degreeBound = 5;
 
-    pruner.Prune(graph, p, candidateNeighbors, distanceThreshold, degreeBound);
+    pruner.RobustPrune(graph, p, candidateNeighbors, distanceThreshold, degreeBound);
 
     auto neighbors = graph.GetNeighbors(p);
     EXPECT_EQ(neighbors.size(), candidateNeighbors.size()) << "Failed at PruneWithDegreeBoundGreaterThanCandidates: Expected " << candidateNeighbors.size() << " neighbors, but got " << neighbors.size();
@@ -96,7 +96,7 @@ TEST_F(RobustPruneDoubleTest, PruneWithInitialNeighbors)
     double distanceThreshold = 1.5;
     int degreeBound = 3;
 
-    pruner.Prune(graph, p, candidateNeighbors, distanceThreshold, degreeBound);
+    pruner.RobustPrune(graph, p, candidateNeighbors, distanceThreshold, degreeBound);
 
     auto neighbors = graph.GetNeighbors(p);
     EXPECT_EQ((int)neighbors.size(), 3) << "Failed at PruneWithInitialNeighbors: Expected 3 neighbors, but got " << neighbors.size();
@@ -119,7 +119,7 @@ TEST_F(RobustPruneDoubleTest, PruneWithNoCandidates)
     double distanceThreshold = 1.5;
     int degreeBound = 3;
 
-    pruner.Prune(graph, p, candidateNeighbors, distanceThreshold, degreeBound);
+    pruner.RobustPrune(graph, p, candidateNeighbors, distanceThreshold, degreeBound);
 
     auto neighbors = graph.GetNeighbors(p);
     EXPECT_TRUE(neighbors.empty()) << "Failed at PruneWithNoCandidates: Expected empty vector when there are no candidate neighbors";

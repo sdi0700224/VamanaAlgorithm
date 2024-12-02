@@ -47,7 +47,7 @@ TEST_F(VamanaTest, TestBuildIndex)
         data.emplace_back(Point<float>({x, y, z}, i));
     }
 
-    EXPECT_NO_THROW(vamana->BuildIndex(data));
+    EXPECT_NO_THROW(vamana->VamanaIndexing(data));
 }
 
 TEST_F(VamanaTest, TestSearch)
@@ -64,7 +64,7 @@ TEST_F(VamanaTest, TestSearch)
         data.emplace_back(Point<float>({x, y, z}, i));
     }
 
-    vamana->BuildIndex(data);
+    vamana->VamanaIndexing(data);
 
     // Define a query point close to the generated data points
     Point<float> query({2.5, 3.5, 4.5});
