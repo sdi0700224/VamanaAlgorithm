@@ -26,6 +26,7 @@ private:
     GreedySearcher<T> Searcher;
     RobustPruner<T> Pruner;
 
+    void UpdateProgressBar(size_t current, size_t total, const std::string &message) const;
     vector<int> SampleRandomPoints(const vector<int> &pointIDs, int numSamples) const;
     unordered_map<T, vector<int>> CreateFilterMap(const vector<Point<T>> &data);
     unordered_map<T, int> FindFilterMedoids(const unordered_map<T, vector<int>> &filterMap,

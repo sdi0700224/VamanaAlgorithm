@@ -9,6 +9,9 @@ BUILD_DIR = obj
 BIN_DIR = bin
 DATA_DIR = data
 
+# Files
+FILES = query_report.txt stitched_vamana.log
+
 # Google Test directories
 GTEST_DIR = third_party/googletest
 GTEST_SRC = $(GTEST_DIR)/googletest/src/gtest-all.cc
@@ -94,8 +97,7 @@ $(BUILD_DIR)/%.o: $(TEST_DIR)/%.cpp
 
 # Clean build files
 clean:
-	rm -rf $(BUILD_DIR) $(BIN_DIR)
-	rm -f query_report.txt
+	rm -rf $(BUILD_DIR) $(BIN_DIR) $(FILES)
 
 # Run the program with arguments
 run: $(TARGET)

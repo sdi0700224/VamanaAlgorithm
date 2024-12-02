@@ -5,10 +5,25 @@
 #include <random>
 #include <iomanip>
 #include <cmath>
+#include <fstream>
 
 template <typename T>
 Vamana<T>::Vamana(int k, int L, int R, double a)
     : K(k), L(L), R(R), A(a), VamanaGraph(), FilteredGraph(), StitchedGraph(), Searcher(), Pruner() {}
+
+template <typename T>
+void Vamana<T>::UpdateProgressBar(size_t current, size_t total, const string &message) const
+{
+    size_t safeTotal = (total > 0) ? total : 1; // Prevent division by zero
+    int progress = static_cast<int>((100.0 * current) / safeTotal);
+    cout << "\r" << message << ": " << setw(3) << progress << "% ["
+         << string(progress / 2, '=') << string(50 - progress / 2, ' ')
+         << "]" << flush;
+    if (current == safeTotal)
+    {
+        cout << " Done!" << endl;
+    }
+}
 
 template <typename T>
 void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data)
@@ -22,7 +37,7 @@ void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data)
     shuffle(randomPermutation.begin(), randomPermutation.end(), mt19937{random_device{}()});
 
     size_t total = randomPermutation.size();
-    size_t step = max(total / 100, static_cast<size_t>(1));
+    size_t step = max(total / 100, static_cast<size_t>(1)); // Ensure step is at least 1
 
     // Iterate through points in random order
     for (size_t idx = 0; idx < total; ++idx)
@@ -61,16 +76,12 @@ void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data)
             }
         }
 
-        // Update progress bar
+        // Check and update progress bar
         if (idx % step == 0 || idx == total - 1)
         {
-            int progress = static_cast<int>((100.0 * idx) / total);
-            cout << "\rProgress: " << progress << "% [" << string(progress / 2, '=')
-                 << string(50 - progress / 2, ' ') << "]" << flush;
+            UpdateProgressBar(idx + 1, total, "Filtered Vamana Indexing");
         }
     }
-
-    cout << "\rProgress: 100% [" << string(50, '=') << "] Done!" << endl;
 }
 
 template <typename T>
@@ -316,11 +327,7 @@ vector<Point<T>> Vamana<T>::Search(const Point<T> &query, int k) const
 }
 
 template <typename T>
-void Vamana<T>::StitchedVamanaIndexing(
-    const vector<Point<T>> &data,
-    int L_small,
-    int R_small,
-    int R_stitched)
+void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small, int R_small, int R_stitched)
 {
     // Create a map of filters to point groups
     auto filterMap = CreateFilterMap(data);
@@ -330,9 +337,11 @@ void Vamana<T>::StitchedVamanaIndexing(
     {
         for (const auto &pointID : pointIDs)
         {
-            labelGroups[filter].push_back(data[pointID]); // Append points to groups
+            labelGroups[filter].push_back(data[pointID]);
         }
     }
+
+    ofstream logFile("stitched_vamana.log");
 
     // Process each group independently
     for (const auto &[label, groupPoints] : labelGroups)
@@ -343,19 +352,18 @@ void Vamana<T>::StitchedVamanaIndexing(
         }
 
         // Adjust parameters to ensure they are within valid bounds
-        int effectiveL = min(L_small, (static_cast<int>(groupPoints.size())));
-        int effectiveK = min(K, (static_cast<int>(groupPoints.size())));
-
-        // Ensure R is more than log2(data.size()) but less than data.size()
+        int effectiveL = min(L_small, static_cast<int>(groupPoints.size()));
+        int effectiveK = min(K, static_cast<int>(groupPoints.size()));
+        // Ensure R is more than log2 data size but less than data size
         int minR = static_cast<int>(ceil(log2(groupPoints.size()))); // Ceil to round up
-        int effectiveR = min(max(minR, R_small), (static_cast<int>(groupPoints.size() - 1)));
+        int effectiveR = min(max(minR, R_small), static_cast<int>(groupPoints.size() - 1));
 
-        cout << "Processing label: " << label << endl;
-        cout << "Group size: " << groupPoints.size() << endl;
-        cout << "Effective K: " << effectiveK << endl;
-        cout << "Effective L: " << effectiveL << endl;
-        cout << "Effective R: " << effectiveR << endl
-             << endl;
+        logFile << "Processing label: " << label << endl;
+        logFile << "Group size: " << groupPoints.size() << endl;
+        logFile << "Effective K: " << effectiveK << endl;
+        logFile << "Effective L: " << effectiveL << endl;
+        logFile << "Effective R: " << effectiveR << endl
+                << endl;
 
         Vamana<T> vamana(effectiveK, effectiveL, effectiveR, A);
         vamana.VamanaIndexing(groupPoints);
@@ -395,6 +403,8 @@ void Vamana<T>::StitchedVamanaIndexing(
     {
         FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
     }
+
+    logFile.close();
 }
 
 template <typename T>
