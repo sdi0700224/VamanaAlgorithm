@@ -6,15 +6,16 @@
 #include "Vamana.h"
 #include "Point.h"
 #include "DataLoader.h"
+#include "ArgumentParser.h"
 
 using namespace std;
 
 template <typename Func>
-auto MeasureExecutionTime(const string &taskName, Func &&func)
+auto MeasureExecutionTime(const string &taskName, Func &&func) -> decltype(func())
 {
     cout << taskName << "..." << endl;
     auto start = chrono::steady_clock::now();
-    auto result = func();
+    auto result = func(); // This will deduce the return type of the passed function
     auto end = chrono::steady_clock::now();
     auto duration = chrono::duration_cast<chrono::milliseconds>(end - start).count();
     cout << taskName << " completed in " << duration << " ms." << endl;
@@ -23,163 +24,249 @@ auto MeasureExecutionTime(const string &taskName, Func &&func)
 
 int main(int argc, char *argv[])
 {
-    // Default values for parameters
-    int k = 0, l = 0, r = 0;
-    double a = 0.0;
-    string baseDatasetPath, queryDatasetPath, groundTruthPath;
-
-    // Define long options for flag parsing
-    static struct option longOptions[] = {
-        {"k", required_argument, 0, 'k'},
-        {"l", required_argument, 0, 'l'},
-        {"r", required_argument, 0, 'r'},
-        {"alpha", required_argument, 0, 'a'},
-        {"base", required_argument, 0, 'b'},
-        {"query", required_argument, 0, 'q'},
-        {"groundtruth", required_argument, 0, 'g'},
-        {0, 0, 0, 0} // Termination of options
-    };
-
-    int opt;
-    while ((opt = getopt_long(argc, argv, "k:l:r:a:b:q:g:", longOptions, NULL)) != -1)
-    {
-        switch (opt)
-        {
-        case 'k':
-            k = stoi(optarg);
-            break;
-        case 'l':
-            l = stoi(optarg);
-            break;
-        case 'r':
-            r = stoi(optarg);
-            break;
-        case 'a':
-            a = stod(optarg);
-            break;
-        case 'b':
-            baseDatasetPath = optarg;
-            break;
-        case 'q':
-            queryDatasetPath = optarg;
-            break;
-        case 'g':
-            groundTruthPath = optarg;
-            break;
-        default:
-            cerr << "Invalid flag or missing argument.\n";
-            return EXIT_FAILURE;
-        }
-    }
-
-    // Handle positional arguments if flags weren't provided
-    int remainingArgs = argc - optind;
-    if (remainingArgs >= 7)
-    { // At least 7 positional arguments are expected
-        if (k == 0)
-            k = stoi(argv[optind]);
-        if (l == 0)
-            l = stoi(argv[optind + 1]);
-        if (r == 0)
-            r = stoi(argv[optind + 2]);
-        if (a == 0.0)
-            a = stod(argv[optind + 3]);
-        if (baseDatasetPath.empty())
-            baseDatasetPath = argv[optind + 4];
-        if (queryDatasetPath.empty())
-            queryDatasetPath = argv[optind + 5];
-        if (groundTruthPath.empty())
-            groundTruthPath = argv[optind + 6];
-    }
-
-    // Validate all parameters
-    if (k <= 0 || l <= 0 || r <= 0 || a <= 0.0 || baseDatasetPath.empty() || queryDatasetPath.empty() || groundTruthPath.empty())
-    {
-        cerr << "Usage: " << argv[0] << " -k <value> -l <value> -r <value> -a <value> -b <base_dataset> -q <query_dataset> -g <groundtruth_dataset>" << endl;
-        cerr << "Or: " << argv[0] << " <k> <l> <r> <alpha> <base_dataset> <query_dataset> <groundtruth_dataset>" << endl;
-        return EXIT_FAILURE;
-    }
-
-    // Print parsed arguments
-    cout << "Parsed Arguments:" << endl;
-    cout << " - k: " << k << endl;
-    cout << " - L: " << l << endl;
-    cout << " - R: " << r << endl;
-    cout << " - Alpha: " << a << endl;
-    cout << " - Base dataset path: " << baseDatasetPath << endl;
-    cout << " - Query dataset path: " << queryDatasetPath << endl;
-    cout << " - Ground truth path: " << groundTruthPath << endl;
-
     try
     {
-        // Initialize objects
+        ParsedArguments args = ArgumentParser::ParseArguments(argc, argv);
+        ArgumentParser::DisplayParsedArguments(args);
+
+        Vamana<float> vamana(args.K, args.L, args.R, args.Alpha);
         DataLoader loader;
-        Vamana<float> vamana(k, l, r, a);
 
-        // Load datasets
+        // Load base dataset
         auto data = MeasureExecutionTime("Loading base dataset", [&]()
-                                         { return loader.LoadFvecs(baseDatasetPath); });
+                                         { return loader.LoadDataset(args.BaseDatasetPath); });
         if (data.empty())
-            throw runtime_error("Failed to load base dataset or dataset is empty.");
-
-        MeasureExecutionTime("Building Vamana index", [&]()
-                             {
-                                 vamana.BuildIndex(data);
-                                 return 0; // Return dummy value to satisfy the lambda requirement
-                             });
-
-        auto queries = MeasureExecutionTime("Loading query dataset", [&]()
-                                            { return loader.LoadFvecs(queryDatasetPath); });
-        if (queries.empty())
-            throw runtime_error("Failed to load query dataset or dataset is empty.");
-
-        auto groundTruth = MeasureExecutionTime("Loading ground truth data", [&]()
-                                                { return loader.LoadIvecs(groundTruthPath); });
-        if (groundTruth.empty() || groundTruth.size() != queries.size())
         {
-            throw runtime_error("Failed to load ground truth data or size mismatch with queries.");
+            throw runtime_error("Failed to load base dataset or dataset is empty.");
         }
 
-        // Search and evaluate Recall@K
-        int totalMatches = 0;
-        int totalQueries = queries.size();
-
-        MeasureExecutionTime("Performing search and calculating Recall@K", [&]()
+        // Build Vamana index
+        MeasureExecutionTime("Building Vamana index", [&]()
                              {
-                                 for (int i = 0; i < totalQueries; ++i)
-                                 {
-                                     // Find k-nearest neighbors
-                                     auto neighbors = vamana.Search(queries[i], k);
+                                 vamana.StitchedVamanaIndexing(data, args.L / 5, args.R / 5, 3 * args.R);
+                                 return 0; });
 
-                                     // Convert neighbor results to a set of indices
-                                     unordered_set<int> foundNeighborIndices;
-                                     for (const auto &neighbor : neighbors)
-                                     {
-                                         foundNeighborIndices.insert(neighbor.GetIndex());
-                                     }
+        // Load query dataset
+        auto queries = MeasureExecutionTime("Loading query dataset", [&]()
+                                            { return loader.LoadQuerySet(args.QueryDatasetPath); });
+        if (queries.empty())
+        {
+            throw runtime_error("Failed to load query dataset or dataset is empty.");
+        }
 
-                                     // Calculate the number of true positives
-                                     int matchCount = 0;
-                                     for (int gtIndex : groundTruth[i])
-                                     {
-                                         if (foundNeighborIndices.count(gtIndex))
-                                         {
-                                             ++matchCount;
-                                         }
-                                     }
-                                     totalMatches += matchCount;
-                                 }
-                                 return 0; // Dummy return
-                             });
+        // Perform search
+        vector<vector<Point<float>>> allNeighbors;
+        MeasureExecutionTime("Performing search", [&]()
+                             {
+                                for (const auto &queryVector : queries)
+                                {
+                                    vector<float> dimensionPart(queryVector.begin() + 4, queryVector.end());
+                                    Point<float> query(dimensionPart);
 
-        // Calculate Recall@K
-        double recallAtK = static_cast<double>(totalMatches) / (totalQueries * k) * 100.0;
+                                    int queryType = static_cast<int>(queryVector[0]);
 
-        // Output results
-        cout << "\n=== Results ===" << endl;
-        cout << " - Recall@K: " << recallAtK << "%" << endl;
-        cout << " - Total queries: " << totalQueries << endl;
-        cout << " - Total matches: " << totalMatches << endl;
+                                    if (queryType == 0) // Vector-only query (no filter)
+                                    {
+                                        auto neighbors = vamana.StitchedSearch(data, query, {});
+                                        if (neighbors.size() == 0)
+                                        {
+                                            //cerr << "Unfiltered search result is empty" << endl;
+                                        }
+                                        allNeighbors.push_back(neighbors);
+                                    }
+                                    else if (queryType == 1) // Vector query (with filter)
+                                    {
+                                        float categoricalFilter = queryVector[1];
+                                        unordered_set<float> queryFilters = {categoricalFilter};
+
+                                        auto neighbors = vamana.StitchedSearch(data, query, queryFilters);
+                                        if (neighbors.size() == 0)
+                                        {
+                                            //cerr << "Filtered search result is empty" << endl;
+                                        }
+                                        allNeighbors.push_back(neighbors);
+                                    }
+                                    else // Skip unsupported query types 3 and 4
+                                    {
+                                        allNeighbors.emplace_back(); // Add an empty vector to maintain alignment
+                                        continue;
+                                    }
+                                }
+                                return 0; });
+
+        // Handle optional ground truth
+        if (!args.GroundTruthPath.empty())
+        {
+            // Load ground truth
+            auto groundTruth = MeasureExecutionTime("Loading ground truth data", [&]()
+                                                    { return loader.ReadGroundTruth(args.GroundTruthPath, 100); });
+            if (groundTruth.size() != queries.size())
+            {
+                cerr << "Error: Ground truth size (" << groundTruth.size()
+                     << ") does not match query size (" << queries.size() << ")." << endl;
+                throw runtime_error("Ground truth size mismatch with query size.");
+            }
+
+            // Separate recall calculations for type 0 and type 1
+            int totalMatchesType0 = 0, totalMatchesType1 = 0, totalMatches = 0;
+            int totalValidQueriesType0 = 0, totalValidQueriesType1 = 0, totalValidQueries = 0;
+            int totalRelevantItemsType0 = 0, totalRelevantItemsType1 = 0, totalRelevantItems = 0;
+
+            for (size_t i = 0; i < queries.size(); ++i)
+            {
+                if (allNeighbors[i].empty()) // Skip not-done queries
+                {
+                    continue;
+                }
+
+                // Determine the type of query (assume `queries[i].GetType()` returns the type)
+                int queryType = queries[i][0];
+
+                // Convert neighbor results to a set of indices
+                unordered_set<int> foundNeighborIndices;
+                for (const auto &neighbor : allNeighbors[i])
+                {
+                    foundNeighborIndices.insert(neighbor.GetIndex());
+                }
+
+                // Determine the valid size of the ground truth vector (up to -1)
+                auto validEndIt = std::find(groundTruth[i].begin(), groundTruth[i].end(), -1);
+                int validSize = std::distance(groundTruth[i].begin(), validEndIt);
+
+                // Count the number of relevant ground truth items for this query (min of K and valid size)
+                int relevantItems = std::min(validSize, args.K);
+
+                // Calculate matches for this query
+                int matches = 0;
+                for (int j = 0; j < validSize; ++j)
+                {
+                    if (foundNeighborIndices.count(groundTruth[i][j]))
+                    {
+                        ++matches;
+                    }
+                }
+
+                // Update counts based on query type
+                if (queryType == 0)
+                {
+                    ++totalValidQueriesType0;
+                    totalMatchesType0 += matches;
+                    totalRelevantItemsType0 += relevantItems;
+                }
+                else if (queryType == 1)
+                {
+                    ++totalValidQueriesType1;
+                    totalMatchesType1 += matches;
+                    totalRelevantItemsType1 += relevantItems;
+                }
+
+                // Update totals
+                ++totalValidQueries;
+                totalMatches += matches;
+                totalRelevantItems += relevantItems;
+            }
+
+            // Calculate Recall@K for type 0, type 1, and total
+            if (totalValidQueries > 0)
+            {
+                double recallAtKType0 = totalRelevantItemsType0 > 0 ? static_cast<double>(totalMatchesType0) / totalRelevantItemsType0 * 100.0 : 0.0;
+                double recallAtKType1 = totalRelevantItemsType1 > 0 ? static_cast<double>(totalMatchesType1) / totalRelevantItemsType1 * 100.0 : 0.0;
+                double recallAtKTotal = static_cast<double>(totalMatches) / totalRelevantItems * 100.0;
+
+                // Output results
+                cout << "\n=== Results ===" << endl
+                     << endl;
+                cout << " - Recall@K (Type 0): " << recallAtKType0 << "%" << endl;
+                cout << " - Recall@K (Type 1): " << recallAtKType1 << "%" << endl;
+                cout << " - Recall@K (Total): " << recallAtKTotal << "%" << endl
+                     << endl;
+                cout << " - Total valid queries (Type 0): " << totalValidQueriesType0 << endl;
+                cout << " - Total valid queries (Type 1): " << totalValidQueriesType1 << endl;
+                cout << " - Total valid queries (Total): " << totalValidQueries << endl
+                     << endl;
+                cout << " - Total matches (Type 0): " << totalMatchesType0 << endl;
+                cout << " - Total matches (Type 1): " << totalMatchesType1 << endl;
+                cout << " - Total matches (Total): " << totalMatches << endl
+                     << endl;
+                cout << " - Total relevant items (Type 0): " << totalRelevantItemsType0 << endl;
+                cout << " - Total relevant items (Type 1): " << totalRelevantItemsType1 << endl;
+                cout << " - Total relevant items (Total): " << totalRelevantItems << endl;
+            }
+            else
+            {
+                cout << "\nNo valid queries to calculate recall." << endl;
+            }
+
+            // Open a file for writing the detailed report
+            ofstream reportFile("query_report.txt");
+            if (!reportFile.is_open())
+            {
+                cerr << "Error: Unable to open report file for writing." << endl;
+                return EXIT_FAILURE;
+            }
+
+            reportFile << "Detailed Query Comparison Report\n\n";
+
+            for (size_t i = 0; i < queries.size(); ++i)
+            {
+                if (allNeighbors[i].empty()) // Skip not-done queries
+                {
+                    reportFile << "Query " << i << ": Skipped (No neighbors found)\n";
+                    continue;
+                }
+
+                int queryType = queries[i][0];
+                unordered_set<int> foundNeighborIndices;
+                for (const auto &neighbor : allNeighbors[i])
+                {
+                    foundNeighborIndices.insert(neighbor.GetIndex());
+                }
+
+                int relevantItems = min(static_cast<int>(groundTruth[i].size()), args.K);
+                int matches = 0;
+                vector<bool> isMatch(groundTruth[i].size(), false);
+
+                for (size_t j = 0; j < groundTruth[i].size(); ++j)
+                {
+                    if (foundNeighborIndices.count(groundTruth[i][j]))
+                    {
+                        ++matches;
+                        isMatch[j] = true;
+                    }
+                }
+
+                double matchPercentage = relevantItems > 0 ? static_cast<double>(matches) / relevantItems * 100.0 : 0.0;
+
+                // Write details of this query to the report
+                reportFile << "Query " << i << " (Type " << queryType << "):\n";
+                reportFile << "  Relevant Items (Ground Truth): ";
+                for (size_t j = 0; j < groundTruth[i].size(); ++j)
+                {
+                    reportFile << groundTruth[i][j];
+                    if (isMatch[j])
+                        reportFile << "(Match)";
+                    reportFile << " ";
+                }
+                reportFile << "\n";
+                reportFile << "  Neighbors Found: ";
+                for (const auto &neighbor : allNeighbors[i])
+                {
+                    reportFile << neighbor.GetIndex() << " ";
+                }
+                reportFile << "\n";
+                reportFile << "  Matches: " << matches << " / " << relevantItems << "\n";
+                reportFile << "  Match Percentage: " << matchPercentage << "%\n";
+                reportFile << "\n";
+            }
+
+            // Close the report file
+            reportFile.close();
+            cout << "Detailed query comparison report saved to 'query_report.txt'." << endl;
+        }
+        else
+        {
+            cout << "\nGround truth not provided; skipping recall calculation." << endl;
+        }
 
         return EXIT_SUCCESS;
     }
