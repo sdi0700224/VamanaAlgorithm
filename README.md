@@ -6,7 +6,7 @@
 | Orfanakou Phoebe      | 1115202000156 |
 
 ## VamanaAlgorithm
-This project implements the Vamana algorithm, designed for efficient k-nearest neighbor (k-NN) search in high-dimensional data spaces.
+This project implements the Filtered Vamana algorithm, designed for efficient k-nearest neighbor (k-NN) filtered search in high-dimensional data spaces.
 
 ## Clone with Submodules
 git clone --recursive <repository_url>

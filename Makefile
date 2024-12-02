@@ -1,6 +1,6 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -Iinclude -std=c++23 -O3 -MMD -MP -g -Wall -Werror
+CXXFLAGS = -Iinclude -std=c++23 -O3 -MMD -MP -g -Wall -Werror -Wunused -Wextra
 
 # Directories
 SRC_DIR = src
@@ -16,7 +16,7 @@ GTEST_MAIN_SRC = $(GTEST_DIR)/googletest/src/gtest_main.cc
 GTEST_INC = $(GTEST_DIR)/googletest/include $(GTEST_DIR)/googletest $(GTEST_DIR)/googletest/src
 
 # Source files
-SOURCES = $(SRC_DIR)/ConsoleApp.cpp $(SRC_DIR)/DataLoader.cpp
+SOURCES = $(SRC_DIR)/ConsoleApp.cpp $(SRC_DIR)/DataLoader.cpp $(SRC_DIR)/ArgumentParser.cpp
 OBJECTS = $(SOURCES:$(SRC_DIR)/%.cpp=$(BUILD_DIR)/%.o)
 DEPS = $(OBJECTS:.o=.d)
 
@@ -37,16 +37,17 @@ TEST_TARGET = $(BIN_DIR)/tests
 TARGET = $(BIN_DIR)/ConsoleApp
 
 # Dataset directory
-DATASET = siftsmall
+DATASET = dummy
+DATATYPE =
 
 # Arguments for the executable
-K = 50
-L = 100
-R = 60
-A = 2
-BASE_DATASET = $(DATA_DIR)/$(DATASET)/$(DATASET)_base.fvecs
-QUERY_DATASET = $(DATA_DIR)/$(DATASET)/$(DATASET)_query.fvecs
-GROUND_TRUTH = $(DATA_DIR)/$(DATASET)/$(DATASET)_groundtruth.ivecs
+K = 30
+L = 60
+R = 5
+A = 1
+BASE_DATASET = $(DATA_DIR)/$(DATASET)-data$(DATATYPE).bin
+QUERY_DATASET = $(DATA_DIR)/$(DATASET)-queries$(DATATYPE).bin
+GROUND_TRUTH = $(DATA_DIR)/$(DATASET)-gt$(DATATYPE).bin
 
 # Add Google Test include directories
 CXXFLAGS += $(addprefix -I, $(GTEST_INC))
@@ -94,6 +95,7 @@ $(BUILD_DIR)/%.o: $(TEST_DIR)/%.cpp
 # Clean build files
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR)
+	rm -f query_report.txt
 
 # Run the program with arguments
 run: $(TARGET)
