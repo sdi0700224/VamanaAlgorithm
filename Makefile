@@ -9,6 +9,9 @@ BUILD_DIR = obj
 BIN_DIR = bin
 DATA_DIR = data
 
+# Files
+FILES = *.log
+
 # Google Test directories
 GTEST_DIR = third_party/googletest
 GTEST_SRC = $(GTEST_DIR)/googletest/src/gtest-all.cc
@@ -41,10 +44,10 @@ DATASET = dummy
 DATATYPE =
 
 # Arguments for the executable
-K = 30
-L = 60
-R = 5
-A = 1
+K = 50
+L = 100
+R = 60
+A = 1.2
 BASE_DATASET = $(DATA_DIR)/$(DATASET)-data$(DATATYPE).bin
 QUERY_DATASET = $(DATA_DIR)/$(DATASET)-queries$(DATATYPE).bin
 GROUND_TRUTH = $(DATA_DIR)/$(DATASET)-gt$(DATATYPE).bin
@@ -94,8 +97,7 @@ $(BUILD_DIR)/%.o: $(TEST_DIR)/%.cpp
 
 # Clean build files
 clean:
-	rm -rf $(BUILD_DIR) $(BIN_DIR)
-	rm -f query_report.txt
+	rm -rf $(BUILD_DIR) $(BIN_DIR) $(FILES)
 
 # Run the program with arguments
 run: $(TARGET)

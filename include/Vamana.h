@@ -22,15 +22,18 @@ private:
     Point<T> Medoid;
     Graph<T> VamanaGraph;
     Graph<T> FilteredGraph;
-    Graph<T> StichedGraph;
+    Graph<T> StitchedGraph;
     GreedySearcher<T> Searcher;
     RobustPruner<T> Pruner;
 
+    void UpdateProgressBar(size_t current, size_t total, const string &message) const;
     vector<int> SampleRandomPoints(const vector<int> &pointIDs, int numSamples) const;
     unordered_map<T, vector<int>> CreateFilterMap(const vector<Point<T>> &data);
     unordered_map<T, int> FindFilterMedoids(const unordered_map<T, vector<int>> &filterMap,
                                             int threshold) const;
-    Point<T> FindMedoid(const vector<Point<T>> &data) const;
+    Point<T> FindMedoid(const vector<Point<T>> &data, bool printMedoid = false) const;
+    vector<Point<T>> PerformSearch(const Graph<T> &graph, const vector<Point<T>> &data,
+                                   const Point<T> &query, const unordered_set<T> &filters) const;
 
     // Allow Google Test to access private methods for testing purposes
     FRIEND_TEST(VamanaTest, TestFindMedoid);

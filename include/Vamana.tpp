@@ -5,44 +5,62 @@
 #include <random>
 #include <iomanip>
 #include <cmath>
+#include <fstream>
 
 template <typename T>
 Vamana<T>::Vamana(int k, int L, int R, double a)
-    : K(k), L(L), R(R), A(a), VamanaGraph(), FilteredGraph(), StichedGraph(), Searcher(), Pruner() {}
+    : K(k), L(L), R(R), A(a), VamanaGraph(), FilteredGraph(), StitchedGraph(), Searcher(), Pruner() {}
+
+template <typename T>
+void Vamana<T>::UpdateProgressBar(size_t current, size_t total, const string &message) const
+{
+    size_t safeTotal = (total > 0) ? total : 1; // Prevent division by zero
+    int progress = static_cast<int>((100.0 * current) / safeTotal);
+    cout << "\r" << message << ": " << setw(3) << progress << "% ["
+         << string(progress / 2, '=') << string(50 - progress / 2, ' ')
+         << "]" << flush;
+    if (current == safeTotal)
+    {
+        cout << " Done!" << endl;
+    }
+}
 
 template <typename T>
 void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data)
 {
-    // Step 1: Find the medoid of each filter using the filterMap for efficiency
-    FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
+    // Find medoid of each filter using the filterMap for efficiency
+    if (FilterMedoids.empty())
+    {
+        FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
+    }
 
-    // Step 2: Generate a random permutation of the dataset
+    // Generate a random permutation of the dataset
     vector<int> randomPermutation(data.size());
     iota(randomPermutation.begin(), randomPermutation.end(), 0);
     shuffle(randomPermutation.begin(), randomPermutation.end(), mt19937{random_device{}()});
 
     size_t total = randomPermutation.size();
-    size_t step = total / 100; // Progress bar updates every 1%
+    size_t step = max(total / 100, static_cast<size_t>(1)); // Ensure step is at least 1
 
-    // Step 3: Iterate through points in random order
+    // Iterate through points in random order
     for (size_t idx = 0; idx < total; ++idx)
     {
         size_t i = randomPermutation[idx];
         const auto &currentPoint = data[i];
         T currentFilter = currentPoint.GetFilter();
 
-        // Step 3.1: Get the medoid (start node) for the current point's filter
+        // Get the medoid (start node) for the current point's filter
         const auto &startNode = data[FilterMedoids[currentFilter]];
 
-        // Step 3.2: Perform FilteredGreedySearch restricted to the current filter
-        auto [_, visited] = Searcher.FilteredGreedySearch(
-            FilteredGraph, currentPoint, {currentFilter}, // Restrict search to the same filter
-            {startNode}, 0, L);
+        // Perform FilteredGreedySearch relative to the current filter
+        auto [_, visited] =
+            Searcher.FilteredGreedySearch(FilteredGraph, currentPoint,
+                                          {currentFilter}, {startNode}, 0, L);
 
-        // Step 3.3: Apply RobustPrune to prune the visited nodes
+        // Apply RobustPrune to visited nodes
         Pruner.FilteredRobustPrune(FilteredGraph, currentPoint, visited, A, R);
 
-        // Step 3.4: Update out-neighbors of the current point and ensure degree constraints
+        // Update out-neighbors of the current point
         for (const auto &neighbor : FilteredGraph.GetNeighbors(currentPoint))
         {
             auto outNeighbors = FilteredGraph.GetNeighbors(neighbor);
@@ -61,17 +79,12 @@ void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data)
             }
         }
 
-        // Step 3.5: Update progress bar
+        // Check and update progress bar
         if (idx % step == 0 || idx == total - 1)
         {
-            int progress = static_cast<int>((100.0 * idx) / total);
-            cout << "\rProgress: " << progress << "% [" << string(progress / 2, '=')
-                 << string(50 - progress / 2, ' ') << "]" << flush;
+            UpdateProgressBar(idx + 1, total, "Filtered Vamana Indexing");
         }
     }
-
-    // Finalize the progress bar
-    cout << "\rProgress: 100% [" << string(50, '=') << "] Done!" << endl;
 }
 
 template <typename T>
@@ -113,7 +126,7 @@ unordered_map<T, int> Vamana<T>::FindFilterMedoids(const unordered_map<T, vector
                                     ? min(threshold, static_cast<int>(pointIDs.size()))
                                     : static_cast<int>(pointIDs.size());
 
-        // Randomly sample `threshold` points from pointIDs
+        // Randomly sample threshold points from pointIDs
         auto sampledPoints = SampleRandomPoints(pointIDs, numPointsToSample);
 
         // Find the point in the sample with the smallest load
@@ -137,37 +150,32 @@ unordered_map<T, int> Vamana<T>::FindFilterMedoids(const unordered_map<T, vector
 }
 
 template <typename T>
-vector<Point<T>> Vamana<T>::FilteredSearch(const vector<Point<T>> &data, const Point<T> &query, const unordered_set<T> &filters) const
+vector<Point<T>> Vamana<T>::PerformSearch(const Graph<T> &graph, const vector<Point<T>> &data,
+                                          const Point<T> &query, const unordered_set<T> &filters) const
 {
-    // Step 1: Identify starting points for the search
     vector<Point<T>> startPoints;
-
-    // Create a local filter set to handle cases where filters is empty
     unordered_set<T> localFilters = filters;
 
-    // If filters is empty, populate localFilters with all keys from Medoids
+    // If filters is empty, populate localFilters with all keys from FilterMedoids
     if (localFilters.empty())
     {
         for (const auto &medoid : FilterMedoids)
         {
             localFilters.insert(medoid.first);
 
-            // Step 2: Perform the filtered greedy search
-            auto [nearestStartPoint, _] = Searcher.FilteredGreedySearch(
-                FilteredGraph,         // Graph containing the data points
-                query,                 // The query point
-                {medoid.first},        // The set of filters to consider
-                {data[medoid.second]}, // Initial set of starting points
-                1,                     // Number of results required
-                1                      // Maximum candidate list size (adjustable)
-            );
+            // Find approximately nearest point with label to query instead of medoid
+            auto [nearestStartPoint, _] =
+                Searcher.FilteredGreedySearch(graph, query, {medoid.first}, {data[medoid.second]}, 1, 1);
 
-            startPoints.push_back(nearestStartPoint[0]);
+            if (!nearestStartPoint.empty())
+            {
+                startPoints.push_back(nearestStartPoint[0]);
+            }
         }
     }
     else
     {
-        // If filters is not empty, process only the specified filters
+        // If filter is specified, process only the specified filters
         for (const auto &filter : localFilters)
         {
             if (FilterMedoids.find(filter) != FilterMedoids.end())
@@ -177,28 +185,29 @@ vector<Point<T>> Vamana<T>::FilteredSearch(const vector<Point<T>> &data, const P
         }
     }
 
-    // If no starting points are available, return an empty result
     if (startPoints.empty())
     {
         return {};
     }
 
-    // Step 2: Perform the filtered greedy search
-    auto [nearestNeighbors, _] = Searcher.FilteredGreedySearch(
-        FilteredGraph, // Graph containing the data points
-        query,         // The query point
-        localFilters,  // The set of filters to consider
-        startPoints,   // Initial set of starting points
-        K,             // Number of results required
-        L              // Maximum candidate list size (adjustable)
-    );
+    auto [nearestNeighbors, _] =
+        Searcher.FilteredGreedySearch(graph, query, localFilters, startPoints, K, L);
 
-    // Step 3: Return the nearest neighbors
     return nearestNeighbors;
 }
 
 template <typename T>
-Point<T> Vamana<T>::FindMedoid(const vector<Point<T>> &data) const
+vector<Point<T>> Vamana<T>::FilteredSearch(const vector<Point<T>> &data, const Point<T> &query, const unordered_set<T> &filters) const
+{
+    return PerformSearch(
+        FilteredGraph,
+        data,
+        query,
+        filters);
+}
+
+template <typename T>
+Point<T> Vamana<T>::FindMedoid(const vector<Point<T>> &data, bool printMedoid) const
 {
     T minDistSum = numeric_limits<T>::max(); // Initialize to max possible value
     Point<T> medoid = data[0];
@@ -220,7 +229,10 @@ Point<T> Vamana<T>::FindMedoid(const vector<Point<T>> &data) const
         }
     }
 
-    // cout << "Medoid point found: " << medoid << endl;
+    if (printMedoid)
+    {
+        cout << "Medoid point found: " << medoid << endl;
+    }
 
     return medoid;
 }
@@ -228,11 +240,11 @@ Point<T> Vamana<T>::FindMedoid(const vector<Point<T>> &data) const
 template <typename T>
 void Vamana<T>::VamanaIndexing(const vector<Point<T>> &data)
 {
-    // Find central point(medoid) to act as a starting point
+    // Find the central point (medoid) to act as a starting point
     Medoid = FindMedoid(data);
 
     vector<size_t> randomPermutation(data.size());
-    // Initialize vector with values from 0 to data size -1
+    // Initialize vector with values from 0 to data size - 1
     iota(randomPermutation.begin(), randomPermutation.end(), 0);
     // Randomize the order of values using a random number generator
     shuffle(randomPermutation.begin(), randomPermutation.end(), mt19937{random_device{}()});
@@ -258,9 +270,9 @@ void Vamana<T>::VamanaIndexing(const vector<Point<T>> &data)
 
     // Progress indicator variables
     size_t totalPoints = data.size();
-    size_t progressStep = max(totalPoints / 100, static_cast<size_t>(1)); // Ensure progressStep is not 0
-    size_t currentProgress = 0;
+    size_t progressStep = max(totalPoints / 100, static_cast<size_t>(1)); // Ensure progressStep is at least 1
 
+    // Iterate through the random permutation of points
     for (size_t i = 0; i < randomPermutation.size(); ++i)
     {
         // Access points in random order
@@ -269,7 +281,7 @@ void Vamana<T>::VamanaIndexing(const vector<Point<T>> &data)
         // Find approximate neighbors using Greedy Search
         auto [_, visitedNeighbors] = Searcher.GreedySearch(VamanaGraph, Medoid, point, 1, L);
 
-        // Add directed edge
+        // Add directed edges from the current point to visited neighbors
         for (const auto &neighbor : visitedNeighbors)
         {
             VamanaGraph.AddEdge(point, neighbor);
@@ -282,10 +294,10 @@ void Vamana<T>::VamanaIndexing(const vector<Point<T>> &data)
         {
             auto outNeighbors = VamanaGraph.GetNeighbors(neighbor);
 
-            // Examine point only if not in outNeighbors
+            // Examine point only if it is not already in outNeighbors
             if (find(outNeighbors.begin(), outNeighbors.end(), point) == outNeighbors.end())
             {
-                // If number of out neighbors plus current point exceeds R, inlude point and prune
+                // If the number of out neighbors plus the current point exceeds R, prune
                 if (outNeighbors.size() + 1 > static_cast<size_t>(R))
                 {
                     outNeighbors.push_back(point);
@@ -301,13 +313,9 @@ void Vamana<T>::VamanaIndexing(const vector<Point<T>> &data)
         // Update the progress bar every progressStep (1%)
         if (i % progressStep == 0 || i == randomPermutation.size() - 1)
         {
-            currentProgress = (i * 100) / totalPoints;
-            cout << "\rBuilding index: " << setw(3) << currentProgress << "% complete" << flush;
+            UpdateProgressBar(i + 1, totalPoints, "Building index");
         }
     }
-
-    cout << "\rBuilding index: 100% complete\n"
-         << flush;
 }
 
 template <typename T>
@@ -318,63 +326,68 @@ vector<Point<T>> Vamana<T>::Search(const Point<T> &query, int k) const
 }
 
 template <typename T>
-void Vamana<T>::StitchedVamanaIndexing(
-    const vector<Point<T>> &data,
-    int L_small,
-    int R_small,
-    int R_stitched)
+void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small, int R_small, int R_stitched)
 {
     // Create a map of filters to point groups
     auto filterMap = CreateFilterMap(data);
     unordered_map<T, vector<Point<T>>> labelGroups;
 
+    // Group points by their filters
     for (const auto &[filter, pointIDs] : filterMap)
     {
         for (const auto &pointID : pointIDs)
         {
-            labelGroups[filter].push_back(data[pointID]); // Append points to groups
+            labelGroups[filter].push_back(data[pointID]);
         }
     }
+
+    ofstream logFile("stitched_vamana.log");
+
+    size_t totalGroups = labelGroups.size();
+    size_t step = max(totalGroups / 100, static_cast<size_t>(1)); // Ensure step is at least 1
+    size_t processedGroups = 0;
 
     // Process each group independently
     for (const auto &[label, groupPoints] : labelGroups)
     {
+        // Skip groups with fewer than 2 points
         if (groupPoints.size() < 2)
         {
-            // Skip groups with fewer than 2 points
+            ++processedGroups;
+            if (processedGroups % step == 0 || processedGroups == totalGroups)
+            {
+                UpdateProgressBar(processedGroups, totalGroups, "Stitched Vamana Indexing");
+            }
             continue;
         }
 
         // Adjust parameters to ensure they are within valid bounds
-        int effectiveL = min(L_small, (static_cast<int>(groupPoints.size()) / 2));
-        int effectiveK = min(K, (static_cast<int>(groupPoints.size()) / 4));
-        if (effectiveK == 0)
-        {
-            effectiveK++;
-        }
+        int effectiveL = min(L_small, static_cast<int>(groupPoints.size())); // Use the smaller of L_small or group size
+        int effectiveK = min(K, static_cast<int>(groupPoints.size()));       // Use the smaller of K or group size
+        // Ensure R is more than log2(data size) but less than data size
+        int minR = static_cast<int>(ceil(log2(groupPoints.size())));                        // Round up
+        int effectiveR = min(max(minR, R_small), static_cast<int>(groupPoints.size() - 1)); // Keep within bounds
 
-        // Ensure R is more than log2(data.size()) but less than data.size()
-        int minR = static_cast<int>(ceil(log2(groupPoints.size()))); // Ceil to round up
-        int effectiveR = min(max(minR + 1, R_small), (static_cast<int>(groupPoints.size()) / 3));
+        logFile << "Processing label: " << label << endl;
+        logFile << "Group size: " << groupPoints.size() << endl;
+        logFile << "Effective K: " << effectiveK << endl;
+        logFile << "Effective L: " << effectiveL << endl;
+        logFile << "Effective R: " << effectiveR << endl
+                << endl;
 
-        // Debug: Print values used for this Vamana indexing
-        cout << "Processing label: " << label << endl;
-        cout << "Group size: " << groupPoints.size() << endl;
-        cout << "Effective K: " << effectiveK << endl;
-        cout << "Effective L: " << effectiveL << endl;
-        cout << "Effective R: " << effectiveR << endl;
-
-        // Create a new Vamana instance for this group
         Vamana<T> vamana(effectiveK, effectiveL, effectiveR, A);
 
-        // Index the group points using Vamana
-        vamana.VamanaIndexing(groupPoints);
+        // Redirect cout to log file during VamanaIndexing
+        streambuf *coutBuffer = cout.rdbuf(); // Save the current buffer for cout
+        cout.rdbuf(logFile.rdbuf());          // Redirect cout to log file
+        vamana.VamanaIndexing(groupPoints);   // Perform Vamana indexing for the current group
+        cout.rdbuf(coutBuffer);               // Restore cout to its original buffer
 
         // Integrate the Vamana subgraph into the main graph
         for (const auto &point : groupPoints)
         {
             // Get existing neighbors from the stitched graph
-            auto existingNeighbors = StichedGraph.GetNeighbors(point);
+            auto existingNeighbors = StitchedGraph.GetNeighbors(point);
 
             // Get new neighbors from the current Vamana subgraph
             const auto &newNeighbors = vamana.VamanaGraph.GetNeighbors(point);
@@ -387,79 +400,41 @@ void Vamana<T>::StitchedVamanaIndexing(
             sort(mergedNeighbors.begin(), mergedNeighbors.end());
             mergedNeighbors.erase(unique(mergedNeighbors.begin(), mergedNeighbors.end()), mergedNeighbors.end());
 
-            // Update the graph with the merged neighbors
-            StichedGraph.SetNeighbors(point, mergedNeighbors);
+            // Update the stitched graph with the merged neighbors
+            StitchedGraph.SetNeighbors(point, mergedNeighbors);
+        }
+
+        ++processedGroups;
+        // Update progress bar only at intervals defined by step
+        if (processedGroups % step == 0 || processedGroups == totalGroups)
+        {
+            UpdateProgressBar(processedGroups, totalGroups, "Stitched Vamana Indexing");
         }
     }
 
-    // Apply robust pruning to finalize the stitched graph
+    // Apply robust pruning to create the stitched graph
     RobustPruner<T> pruner;
     for (const auto &point : data)
     {
-        const auto &neighbors = StichedGraph.GetNeighbors(point);
-        pruner.FilteredRobustPrune(StichedGraph, point, neighbors, A, R_stitched);
+        const auto &neighbors = StitchedGraph.GetNeighbors(point);
+        pruner.FilteredRobustPrune(StitchedGraph, point, neighbors, A, R_stitched);
     }
 
-    FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
+    // Find FilterMedoids, to be able to search later
+    if (FilterMedoids.empty())
+    {
+        FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
+    }
+
+    logFile.close();
 }
 
 template <typename T>
 vector<Point<T>> Vamana<T>::StitchedSearch(const vector<Point<T>> &data, const Point<T> &query, const unordered_set<T> &filters) const
 {
-    // Step 1: Identify starting points for the search
-    vector<Point<T>> startPoints;
-
-    // Create a local filter set to handle cases where filters is empty
-    unordered_set<T> localFilters = filters;
-
-    // If filters is empty, populate localFilters with all keys from Medoids
-    if (localFilters.empty())
-    {
-        for (const auto &medoid : FilterMedoids)
-        {
-            localFilters.insert(medoid.first);
-
-            // Step 2: Perform the filtered greedy search
-            auto [nearestStartPoint, _] = Searcher.FilteredGreedySearch(
-                StichedGraph,          // Graph containing the data points
-                query,                 // The query point
-                {medoid.first},        // The set of filters to consider
-                {data[medoid.second]}, // Initial set of starting points
-                1,                     // Number of results required
-                1                      // Maximum candidate list size (adjustable)
-            );
-
-            startPoints.push_back(nearestStartPoint[0]);
-        }
-    }
-    else
-    {
-        // If filters is not empty, process only the specified filters
-        for (const auto &filter : localFilters)
-        {
-            if (FilterMedoids.find(filter) != FilterMedoids.end())
-            {
-                startPoints.push_back(data[FilterMedoids.at(filter)]);
-            }
-        }
-    }
-
-    // If no starting points are available, return an empty result
-    if (startPoints.empty())
-    {
-        return {};
-    }
-
-    // Step 2: Perform the filtered greedy search
-    auto [nearestNeighbors, _] = Searcher.FilteredGreedySearch(
-        StichedGraph, // Graph containing the data points
-        query,        // The query point
-        localFilters, // The set of filters to consider
-        startPoints,  // Initial set of starting points
-        K,            // Number of results required
-        L             // Maximum candidate list size (adjustable)
-    );
-
-    // Step 3: Return the nearest neighbors
-    return nearestNeighbors;
+    return this->PerformSearch(
+        StitchedGraph,
+        data,
+        query,
+        filters);
 }
