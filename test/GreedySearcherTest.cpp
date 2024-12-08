@@ -15,17 +15,17 @@ protected:
 
     void SetUp() override
     {
-        // Initialize points with coordinates and indexes
-        point1 = Point<float>({1.0, 2.0}, 1);
-        point2 = Point<float>({2.0, 3.0}, 2);
-        point3 = Point<float>({5.0, 5.0}, 3);
-        point4 = Point<float>({7.0, 8.0}, 4);
-        point5 = Point<float>({10.0, 10.0}, 5);
-        point6 = Point<float>({12.0, 15.0}, 6);
-        point7 = Point<float>({14.0, 18.0}, 7);
-        point8 = Point<float>({16.0, 20.0}, 8);
-        point9 = Point<float>({20.0, 25.0}, 9);
-        queryPoint = Point<float>({1.5, 2.5}, -1);
+        // Initialize points with coordinates, filters, and indexes
+        point1 = Point<float>({1.0, 2.0}, 1.0, 1);
+        point2 = Point<float>({2.0, 3.0}, 2.0, 2);
+        point3 = Point<float>({5.0, 5.0}, 3.0, 3);
+        point4 = Point<float>({7.0, 8.0}, 4.0, 4);
+        point5 = Point<float>({10.0, 10.0}, 5.0, 5);
+        point6 = Point<float>({12.0, 15.0}, 6.0, 6);
+        point7 = Point<float>({14.0, 18.0}, 7.0, 7);
+        point8 = Point<float>({16.0, 20.0}, 8.0, 8);
+        point9 = Point<float>({20.0, 25.0}, 9.0, 9);
+        queryPoint = Point<float>({1.5, 2.5}, -1.0, -1);
 
         // Add points to the graph
         graph.AddPoint(point1);
@@ -38,7 +38,7 @@ protected:
         graph.AddPoint(point8);
         graph.AddPoint(point9);
 
-        // Add edges to create a larger connected graph
+        // Add edges to create a graph
         graph.AddEdge(point1, point2);
         graph.AddEdge(point2, point3);
         graph.AddEdge(point3, point4);
@@ -167,4 +167,91 @@ TEST_F(GreedySearcherTest, FindApproximateNeighbors_ExpectedOutput_LargerGraph)
     EXPECT_EQ(visited[5].GetIndex(), 6);
     EXPECT_EQ(visited[6].GetIndex(), 7);
     EXPECT_EQ(visited[7].GetIndex(), 8);
+}
+
+// Test with query filters dynamically applied to match filters in the points
+TEST_F(GreedySearcherTest, FilteredGreedySearch_FilteredPoints)
+{
+    int numResults = 3;
+    int maxCandidates = 5;
+    unordered_set<float> queryFilters = {2.0, 3.0, 4.0}; // Filters that should match points 2, 3, and 4
+    vector<Point<float>> startPoints = {point1, point2, point3, point4, point5};
+
+    auto result = search.FilteredGreedySearch(graph, queryPoint, queryFilters, startPoints, numResults, maxCandidates);
+
+    const auto &neighbors = result.first;
+
+    cerr << "Filtered Neighbors found: ";
+    for (const auto &neighbor : neighbors)
+    {
+        cerr << "Point(Index: " << neighbor.GetIndex() << ", Filter: " << neighbor.GetFilter() << ", Coordinates: ";
+        for (float coord : neighbor.GetCoordinates())
+        {
+            cerr << coord << " ";
+        }
+        cerr << ") ";
+    }
+    cerr << endl;
+
+    ASSERT_EQ((int)neighbors.size(), numResults);
+    for (const auto &neighbor : neighbors)
+    {
+        EXPECT_TRUE(queryFilters.count(neighbor.GetFilter())); // Ensure neighbors match the query filters
+    }
+}
+
+// Test edge case: Filter matches only one point
+TEST_F(GreedySearcherTest, FilteredGreedySearch_SingleMatchingPoint)
+{
+    int numResults = 2;
+    int maxCandidates = 3;
+    unordered_set<float> queryFilters = {5.0}; // Filter that matches only point5
+    vector<Point<float>> startPoints = {point1, point2, point3, point4, point5};
+
+    auto result = search.FilteredGreedySearch(graph, queryPoint, queryFilters, startPoints, numResults, maxCandidates);
+
+    const auto &neighbors = result.first;
+
+    cerr << "Filtered Neighbors found (Single Match): ";
+    for (const auto &neighbor : neighbors)
+    {
+        cerr << "Point(Index: " << neighbor.GetIndex() << ", Filter: " << neighbor.GetFilter() << ", Coordinates: ";
+        for (float coord : neighbor.GetCoordinates())
+        {
+            cerr << coord << " ";
+        }
+        cerr << ") ";
+    }
+    cerr << endl;
+
+    ASSERT_EQ((int)neighbors.size(), 1); // Only one point matches the filter
+    EXPECT_EQ(neighbors[0].GetFilter(), 5.0);
+    EXPECT_EQ(neighbors[0], point5);
+}
+
+// Test edge case: Filter excludes all points
+TEST_F(GreedySearcherTest, FilteredGreedySearch_AllPointsExcluded)
+{
+    int numResults = 2;
+    int maxCandidates = 3;
+    unordered_set<float> queryFilters = {10.0, 11.0, 12.0}; // Filters that exclude all points
+    vector<Point<float>> startPoints = {point1, point2, point3};
+
+    auto result = search.FilteredGreedySearch(graph, queryPoint, queryFilters, startPoints, numResults, maxCandidates);
+
+    const auto &neighbors = result.first;
+
+    cerr << "Filtered Neighbors found (All Points Excluded): ";
+    for (const auto &neighbor : neighbors)
+    {
+        cerr << "Point(Index: " << neighbor.GetIndex() << ", Filter: " << neighbor.GetFilter() << ", Coordinates: ";
+        for (float coord : neighbor.GetCoordinates())
+        {
+            cerr << coord << " ";
+        }
+        cerr << ") ";
+    }
+    cerr << endl;
+
+    ASSERT_TRUE(neighbors.empty()); // Expect no results
 }

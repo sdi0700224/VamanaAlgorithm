@@ -37,6 +37,19 @@ protected:
             candidates.push_back(neighbor);
         }
     }
+
+    void AddCandidateNeighborsWithFilter(const vector<pair<vector<T>, T>> &coordsAndFilters, vector<Point<T>> &candidates)
+    {
+        for (size_t i = 0; i < coordsAndFilters.size(); ++i)
+        {
+            const auto &coords = coordsAndFilters[i].first;
+            T filter = coordsAndFilters[i].second;
+
+            Point<T> neighbor(coords, filter, static_cast<int>(i + 1));
+            graph.AddPoint(neighbor);
+            candidates.push_back(neighbor);
+        }
+    }
 };
 
 typedef RobustPrunerTest<double> RobustPruneDoubleTest;
@@ -123,4 +136,50 @@ TEST_F(RobustPruneDoubleTest, PruneWithNoCandidates)
 
     auto neighbors = graph.GetNeighbors(p);
     EXPECT_TRUE(neighbors.empty()) << "Failed at PruneWithNoCandidates: Expected empty vector when there are no candidate neighbors";
+}
+
+TEST_F(RobustPruneDoubleTest, FilteredPruneRespectsDegreeBound)
+{
+    vector<Point<double>> candidateNeighbors;
+
+    // Add candidate neighbors with mixed filters
+    AddCandidateNeighborsWithFilter({{{1.0, 0.0}, 1.0},
+                                     {{0.0, 1.0}, 2.0},
+                                     {{1.0, 1.0}, 1.0},
+                                     {{-1.0, 0.0}, 2.0},
+                                     {{0.0, -1.0}, 1.0}},
+                                    candidateNeighbors);
+
+    // Set filter for the target point
+    p = Point<double>({0.0, 0.0}, 1.0, 0);
+    graph.AddPoint(p);
+
+    double distanceThreshold = 1.5;
+    int degreeBound = 3;
+
+    pruner.FilteredRobustPrune(graph, p, candidateNeighbors, distanceThreshold, degreeBound);
+
+    auto neighbors = graph.GetNeighbors(p);
+
+    // Validate total neighbors count matches the degree bound
+    EXPECT_EQ(static_cast<size_t>(degreeBound), neighbors.size())
+        << "Failed at FilteredPruneRespectsDegreeBound: Expected " << degreeBound
+        << " neighbors, but got " << neighbors.size();
+}
+
+TEST_F(RobustPruneDoubleTest, FilteredPruneWithNoCandidatesLeavesNoNeighbors)
+{
+    vector<Point<double>> candidateNeighbors;
+
+    // No candidates provided
+    double distanceThreshold = 1.5;
+    int degreeBound = 3;
+
+    pruner.FilteredRobustPrune(graph, p, candidateNeighbors, distanceThreshold, degreeBound);
+
+    auto neighbors = graph.GetNeighbors(p);
+
+    // Validate that no neighbors are present
+    EXPECT_TRUE(neighbors.empty())
+        << "Failed at FilteredPruneWithNoCandidatesLeavesNoNeighbors: Expected no neighbors, but got " << neighbors.size();
 }

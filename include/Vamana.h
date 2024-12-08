@@ -35,8 +35,11 @@ private:
     vector<Point<T>> PerformSearch(const Graph<T> &graph, const vector<Point<T>> &data,
                                    const Point<T> &query, const unordered_set<T> &filters) const;
 
-    // Allow Google Test to access private methods for testing purposes
     FRIEND_TEST(VamanaTest, TestFindMedoid);
+    FRIEND_TEST(VamanaTest, TestSampleRandomPoints);
+    FRIEND_TEST(VamanaTest, TestCreateFilterMap);
+    FRIEND_TEST(VamanaTest, TestFindFilterMedoids);
+    FRIEND_TEST(VamanaTest, TestPerformSearch);
 
 public:
     Vamana(int k, int l, int r, double a);
@@ -44,7 +47,7 @@ public:
     void FilteredVamanaIndexing(const vector<Point<T>> &data);
     void VamanaIndexing(const vector<Point<T>> &data);
     void StitchedVamanaIndexing(const vector<Point<T>> &data,
-                                int L_small, int R_small, int R_stitched);
+                                int L_small, int R_small, int R_stitched, string logFileName = "stitched_vamana.log");
 
     vector<Point<T>> FilteredSearch(const vector<Point<T>> &data, const Point<T> &query, const unordered_set<T> &filters) const;
     vector<Point<T>> StitchedSearch(const vector<Point<T>> &data, const Point<T> &query, const unordered_set<T> &filters) const;

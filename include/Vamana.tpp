@@ -326,7 +326,7 @@ vector<Point<T>> Vamana<T>::Search(const Point<T> &query, int k) const
 }
 
 template <typename T>
-void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small, int R_small, int R_stitched)
+void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small, int R_small, int R_stitched, string logFileName)
 {
     // Create a map of filters to point groups
     auto filterMap = CreateFilterMap(data);
@@ -341,7 +341,7 @@ void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small
         }
     }
 
-    ofstream logFile("stitched_vamana.log");
+    ofstream logFile(logFileName);
 
     size_t totalGroups = labelGroups.size();
     size_t step = max(totalGroups / 100, static_cast<size_t>(1)); // Ensure step is at least 1
