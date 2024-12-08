@@ -24,8 +24,8 @@ protected:
 
     void SetUp() override
     {
-        point1 = Point<float>(coords1, 1);
-        point2 = Point<float>(coords2, 2);
+        point1 = Point<float>(coords1, 1, 1);
+        point2 = Point<float>(coords2, 2, 2);
     }
 };
 
@@ -94,6 +94,37 @@ TEST_F(PointTest, GetCoordinates)
 TEST_F(PointTest, GetIndex)
 {
     EXPECT_EQ(point1.GetIndex(), 1);
+}
+
+TEST_F(PointTest, GetFilter)
+{
+    EXPECT_EQ(point1.GetFilter(), 1);
+}
+
+TEST_F(PointTest, Serialize)
+{
+    ostringstream oss;
+    point1.Serialize(oss);
+    string serialized_data = oss.str();
+
+    EXPECT_FALSE(serialized_data.empty());
+}
+
+TEST_F(PointTest, Deserialize)
+{
+    // Serialize point1 into binary format
+    ostringstream oss;
+    point1.Serialize(oss);
+    string serialized_data = oss.str();
+
+    // Deserialize from binary format
+    istringstream iss(serialized_data);
+    Point<float> deserialized_point;
+    deserialized_point.Deserialize(iss);
+
+    EXPECT_EQ(deserialized_point.GetIndex(), point1.GetIndex());
+    EXPECT_EQ(deserialized_point.GetFilter(), point1.GetFilter());
+    EXPECT_EQ(deserialized_point.GetCoordinates(), point1.GetCoordinates());
 }
 
 // Test the ostream operator
