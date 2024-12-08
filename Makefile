@@ -11,6 +11,7 @@ DATA_DIR = data
 
 # Files
 FILES = *.log
+INDEX_FILES = *Graph.bin
 
 # Google Test directories
 GTEST_DIR = third_party/googletest
@@ -98,6 +99,10 @@ $(BUILD_DIR)/%.o: $(TEST_DIR)/%.cpp
 # Clean build files
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR) $(FILES)
+
+# Clean index files
+clean-index:
+	rm -f $(INDEX_FILES)
 
 # Run the program with arguments
 run: $(TARGET)

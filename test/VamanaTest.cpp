@@ -54,7 +54,7 @@ TEST_F(VamanaTest, TestBuildIndex)
                                        i));
     }
 
-    EXPECT_NO_THROW(vamana->VamanaIndexing(data));
+    EXPECT_NO_THROW(vamana->VamanaIndexing(data, false));
 }
 
 TEST_F(VamanaTest, TestSearch)
@@ -71,7 +71,7 @@ TEST_F(VamanaTest, TestSearch)
                                        i));
     }
 
-    vamana->VamanaIndexing(data);
+    vamana->VamanaIndexing(data, false);
 
     // Define a query point close to the generated data points
     Point<float> query({2.5, 3.5, 4.5});
@@ -129,7 +129,7 @@ TEST_F(VamanaTest, TestFilteredVamanaIndexing)
         data.emplace_back(Point<float>({i % 5 + 1.0f, i % 7 + 2.0f}, filter, i));
     }
 
-    EXPECT_NO_THROW(vamana->FilteredVamanaIndexing(data));
+    EXPECT_NO_THROW(vamana->FilteredVamanaIndexing(data, false));
 }
 
 TEST_F(VamanaTest, TestStitchedVamanaIndexing)
@@ -144,7 +144,7 @@ TEST_F(VamanaTest, TestStitchedVamanaIndexing)
         data.emplace_back(Point<float>({i % 5 + 1.0f, i % 7 + 2.0f}, filter, i));
     }
 
-    EXPECT_NO_THROW(vamana->StitchedVamanaIndexing(data, 5, 10, 15, stitchedLogFile));
+    EXPECT_NO_THROW(vamana->StitchedVamanaIndexing(data, 5, 10, 15, stitchedLogFile, false));
 }
 
 TEST_F(VamanaTest, TestFilteredSearch)
@@ -162,7 +162,7 @@ TEST_F(VamanaTest, TestFilteredSearch)
     unordered_set<float> filters = {1.0f, 2.0f}; // Apply filters
     Point<float> query({3.0f, 4.0f});
 
-    vamana->FilteredVamanaIndexing(data);
+    vamana->FilteredVamanaIndexing(data, false);
     auto results = vamana->FilteredSearch(data, query, filters);
 
     // Ensure the results are non-empty
@@ -199,7 +199,7 @@ TEST_F(VamanaTest, TestStitchedSearch)
     unordered_set<float> filters = {1.0f, 3.0f}; // Apply filters
     Point<float> query({3.0f, 4.0f});
 
-    vamana->StitchedVamanaIndexing(data, 5, 10, 15, stitchedLogFile);
+    vamana->StitchedVamanaIndexing(data, 5, 10, 15, stitchedLogFile, false);
     auto results = vamana->StitchedSearch(data, query, filters);
 
     // Ensure the results are non-empty
@@ -302,8 +302,8 @@ TEST_F(VamanaTest, TestPerformSearch)
     Point<float> query({3.0f, 4.0f});
 
     // Index the data into Filtered and Stitched graphs
-    vamana->FilteredVamanaIndexing(data);
-    vamana->StitchedVamanaIndexing(data, 5, 10, 15, stitchedLogFile);
+    vamana->FilteredVamanaIndexing(data, false);
+    vamana->StitchedVamanaIndexing(data, 5, 10, 15, stitchedLogFile, false);
 
     // Perform search on both graphs
     auto resultsFiltered = vamana->PerformSearch(vamana->FilteredGraph, data, query, {});

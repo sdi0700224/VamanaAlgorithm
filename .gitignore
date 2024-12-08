@@ -20,3 +20,8 @@
 # Ignore OS-specific files
 .DS_Store
 Thumbs.db
+
+# Saved Indexes
+plainGraph.bin
+filteredGraph.bin
+stitchedGraph.bin

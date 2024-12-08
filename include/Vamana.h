@@ -13,6 +13,10 @@ template <typename T>
 class Vamana
 {
 private:
+    const string VamanaGraphName = "vamanaGraph.bin";
+    const string FilteredGraphName = "filteredGraph.bin";
+    const string StitchedGraphName = "stitchedGraph.bin";
+
     int K;
     int L;
     int R;
@@ -44,10 +48,10 @@ private:
 public:
     Vamana(int k, int l, int r, double a);
 
-    void FilteredVamanaIndexing(const vector<Point<T>> &data);
-    void VamanaIndexing(const vector<Point<T>> &data);
-    void StitchedVamanaIndexing(const vector<Point<T>> &data,
-                                int L_small, int R_small, int R_stitched, string logFileName = "stitched_vamana.log");
+    void FilteredVamanaIndexing(const vector<Point<T>> &data, bool loadSaveIndex = true);
+    void VamanaIndexing(const vector<Point<T>> &data, bool loadSaveIndex = true);
+    void StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small, int R_small,
+                                int R_stitched, string logFileName = "stitched_vamana.log", bool loadSaveIndex = true);
 
     vector<Point<T>> FilteredSearch(const vector<Point<T>> &data, const Point<T> &query, const unordered_set<T> &filters) const;
     vector<Point<T>> StitchedSearch(const vector<Point<T>> &data, const Point<T> &query, const unordered_set<T> &filters) const;

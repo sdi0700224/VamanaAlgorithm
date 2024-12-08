@@ -2,6 +2,7 @@
 #include "Point.h"
 #include <gtest/gtest.h>
 #include <vector>
+#include <sstream>
 
 using namespace std;
 
@@ -109,4 +110,67 @@ TEST_F(GraphTest, MultipleDirectedEdgesFromOnePoint)
     // Ensure directed edges do not reciprocate
     EXPECT_TRUE(graph.GetNeighbors(point2).empty());
     EXPECT_TRUE(graph.GetNeighbors(point3).empty());
+}
+
+// Test serialization of the graph
+TEST_F(GraphTest, SerializeGraph)
+{
+    graph.AddPoint(point1);
+    graph.AddPoint(point2);
+    graph.AddEdge(point1, point2);
+
+    ostringstream oss;
+    graph.Serialize(oss);
+
+    string serializedGraph = oss.str();
+    EXPECT_FALSE(serializedGraph.empty());
+}
+
+// Test serialization and deserialization of the graph
+TEST_F(GraphTest, DeserializeGraph)
+{
+    graph.AddPoint(point1);
+    graph.AddPoint(point2);
+    graph.AddPoint(point3);
+    graph.AddEdge(point1, point2);
+    graph.AddEdge(point1, point3);
+
+    // Serialize the graph
+    ostringstream oss;
+    graph.Serialize(oss);
+    string serializedGraph = oss.str();
+
+    EXPECT_FALSE(serializedGraph.empty());
+
+    // Deserialize into a new graph
+    Graph<int> newGraph;
+    istringstream iss(serializedGraph);
+    newGraph.Deserialize(iss);
+
+    // Verify the structure of the deserialized graph
+    auto deserializedNeighbors1 = newGraph.GetNeighbors(point1);
+    ASSERT_EQ((int)deserializedNeighbors1.size(), 2);
+    EXPECT_EQ(deserializedNeighbors1[0], point2);
+    EXPECT_EQ(deserializedNeighbors1[1], point3);
+
+    auto deserializedNeighbors2 = newGraph.GetNeighbors(point2);
+    EXPECT_TRUE(deserializedNeighbors2.empty());
+
+    auto deserializedNeighbors3 = newGraph.GetNeighbors(point3);
+    EXPECT_TRUE(deserializedNeighbors3.empty());
+}
+
+// Test serializing and deserializing an empty graph
+TEST_F(GraphTest, SerializeDeserializeEmptyGraph)
+{
+    ostringstream oss;
+    graph.Serialize(oss);
+    string serializedGraph = oss.str();
+    EXPECT_TRUE(!serializedGraph.empty());
+
+    Graph<int> newGraph;
+    istringstream iss(serializedGraph);
+    newGraph.Deserialize(iss);
+
+    EXPECT_TRUE(newGraph.GetNeighbors(point1).empty());
 }

@@ -29,6 +29,8 @@ public:
     const vector<T> &GetCoordinates() const;
     int GetIndex() const;
     T GetFilter() const;
+    void Serialize(ostream &os) const;
+    void Deserialize(istream &is);
 
     template <typename U>
     friend ostream &operator<<(ostream &os, const Point<U> &point);
