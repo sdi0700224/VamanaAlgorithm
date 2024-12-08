@@ -3,6 +3,7 @@
 #include <string>
 #include <stdexcept>
 #include <getopt.h>
+#include <gtest/gtest.h>
 
 using namespace std;
 
@@ -25,4 +26,6 @@ public:
 
 private:
     static void Validate(const ParsedArguments &args);
+
+    FRIEND_TEST(ArgumentParserTest, ValidateThrowsOnInvalidData);
 };
