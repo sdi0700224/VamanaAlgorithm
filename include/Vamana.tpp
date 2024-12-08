@@ -6,6 +6,7 @@
 #include <iomanip>
 #include <cmath>
 #include <fstream>
+#include <filesystem>
 
 template <typename T>
 Vamana<T>::Vamana(int k, int L, int R, double a)
@@ -26,12 +27,21 @@ void Vamana<T>::UpdateProgressBar(size_t current, size_t total, const string &me
 }
 
 template <typename T>
-void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data)
+void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data, bool loadSaveIndex)
 {
     // Find medoid of each filter using the filterMap for efficiency
     if (FilterMedoids.empty())
     {
         FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
+    }
+
+    if (loadSaveIndex && filesystem::exists(FilteredGraphName))
+    {
+        ifstream file(FilteredGraphName, ios::binary);
+        FilteredGraph.Deserialize(file);
+        file.close();
+        cout << "Graph successfully loaded from '" << FilteredGraphName << "'." << endl;
+        return;
     }
 
     // Generate a random permutation of the dataset
@@ -84,6 +94,13 @@ void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data)
         {
             UpdateProgressBar(idx + 1, total, "Filtered Vamana Indexing");
         }
+    }
+
+    if (loadSaveIndex)
+    {
+        ofstream file(FilteredGraphName, ios::binary);
+        FilteredGraph.Serialize(file);
+        file.close();
     }
 }
 
@@ -238,10 +255,19 @@ Point<T> Vamana<T>::FindMedoid(const vector<Point<T>> &data, bool printMedoid) c
 }
 
 template <typename T>
-void Vamana<T>::VamanaIndexing(const vector<Point<T>> &data)
+void Vamana<T>::VamanaIndexing(const vector<Point<T>> &data, bool loadSaveIndex)
 {
     // Find the central point (medoid) to act as a starting point
     Medoid = FindMedoid(data);
+
+    if (loadSaveIndex && filesystem::exists(VamanaGraphName))
+    {
+        ifstream file(VamanaGraphName, ios::binary);
+        VamanaGraph.Deserialize(file);
+        file.close();
+        cout << "Graph successfully loaded from '" << VamanaGraphName << "'." << endl;
+        return;
+    }
 
     vector<size_t> randomPermutation(data.size());
     // Initialize vector with values from 0 to data size - 1
@@ -316,6 +342,13 @@ void Vamana<T>::VamanaIndexing(const vector<Point<T>> &data)
             UpdateProgressBar(i + 1, totalPoints, "Building index");
         }
     }
+
+    if (loadSaveIndex)
+    {
+        ofstream file(VamanaGraphName, ios::binary);
+        VamanaGraph.Serialize(file);
+        file.close();
+    }
 }
 
 template <typename T>
@@ -326,8 +359,23 @@ vector<Point<T>> Vamana<T>::Search(const Point<T> &query, int k) const
 }
 
 template <typename T>
-void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small, int R_small, int R_stitched, string logFileName)
+void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small, int R_small, int R_stitched, string logFileName, bool loadSaveIndex)
 {
+    // Find FilterMedoids, to be able to search later
+    if (FilterMedoids.empty())
+    {
+        FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
+    }
+
+    if (loadSaveIndex && filesystem::exists(StitchedGraphName))
+    {
+        ifstream file(StitchedGraphName, ios::binary);
+        StitchedGraph.Deserialize(file);
+        file.close();
+        cout << "Graph successfully loaded from '" << StitchedGraphName << "'." << endl;
+        return;
+    }
+
     // Create a map of filters to point groups
     auto filterMap = CreateFilterMap(data);
     unordered_map<T, vector<Point<T>>> labelGroups;
@@ -378,10 +426,10 @@ void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small
         Vamana<T> vamana(effectiveK, effectiveL, effectiveR, A);
 
         // Redirect cout to log file during VamanaIndexing
-        streambuf *coutBuffer = cout.rdbuf(); // Save the current buffer for cout
-        cout.rdbuf(logFile.rdbuf());          // Redirect cout to log file
-        vamana.VamanaIndexing(groupPoints);   // Perform Vamana indexing for the current group
-        cout.rdbuf(coutBuffer);               // Restore cout to its original buffer
+        streambuf *coutBuffer = cout.rdbuf();      // Save the current buffer for cout
+        cout.rdbuf(logFile.rdbuf());               // Redirect cout to log file
+        vamana.VamanaIndexing(groupPoints, false); // Perform Vamana indexing for the current group
+        cout.rdbuf(coutBuffer);                    // Restore cout to its original buffer
 
         // Integrate the Vamana subgraph into the main graph
         for (const auto &point : groupPoints)
@@ -420,13 +468,14 @@ void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small
         pruner.FilteredRobustPrune(StitchedGraph, point, neighbors, A, R_stitched);
     }
 
-    // Find FilterMedoids, to be able to search later
-    if (FilterMedoids.empty())
-    {
-        FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
-    }
-
     logFile.close();
+
+    if (loadSaveIndex)
+    {
+        ofstream file(StitchedGraphName, ios::binary);
+        StitchedGraph.Serialize(file);
+        file.close();
+    }
 }
 
 template <typename T>

@@ -113,6 +113,27 @@ T Point<T>::GetFilter() const
     return Filter;
 }
 
+template <typename T>
+void Point<T>::Serialize(ostream &os) const
+{
+    size_t coord_size = Coordinates.size();
+    os.write(reinterpret_cast<const char *>(&Index), sizeof(Index));
+    os.write(reinterpret_cast<const char *>(&Filter), sizeof(Filter));
+    os.write(reinterpret_cast<const char *>(&coord_size), sizeof(coord_size));
+    os.write(reinterpret_cast<const char *>(Coordinates.data()), coord_size * sizeof(T));
+}
+
+template <typename T>
+void Point<T>::Deserialize(istream &is)
+{
+    size_t coord_size;
+    is.read(reinterpret_cast<char *>(&Index), sizeof(Index));
+    is.read(reinterpret_cast<char *>(&Filter), sizeof(Filter));
+    is.read(reinterpret_cast<char *>(&coord_size), sizeof(coord_size));
+    Coordinates.resize(coord_size);
+    is.read(reinterpret_cast<char *>(Coordinates.data()), coord_size * sizeof(T));
+}
+
 template <typename U>
 ostream &operator<<(ostream &os, const Point<U> &point)
 {
