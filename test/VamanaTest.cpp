@@ -2,12 +2,15 @@
 #include "Vamana.h"
 #include "Point.h"
 #include <vector>
+#include <filesystem>
 
 using namespace std;
 
 class VamanaTest : public ::testing::Test
 {
 protected:
+    const string stitchedLogFile = "test_stitched_vamana";
+
     int k = 10;     // Number of neighbors to search for
     int l = 20;     // List size for the search process
     int r = 15;     // Degree bound
@@ -22,6 +25,10 @@ protected:
 
     void TearDown() override
     {
+        if (filesystem::exists(stitchedLogFile))
+        {
+            filesystem::remove(stitchedLogFile);
+        }
         delete vamana;
     }
 };
@@ -137,7 +144,7 @@ TEST_F(VamanaTest, TestStitchedVamanaIndexing)
         data.emplace_back(Point<float>({i % 5 + 1.0f, i % 7 + 2.0f}, filter, i));
     }
 
-    EXPECT_NO_THROW(vamana->StitchedVamanaIndexing(data, 5, 10, 15));
+    EXPECT_NO_THROW(vamana->StitchedVamanaIndexing(data, 5, 10, 15, stitchedLogFile));
 }
 
 TEST_F(VamanaTest, TestFilteredSearch)
@@ -192,7 +199,7 @@ TEST_F(VamanaTest, TestStitchedSearch)
     unordered_set<float> filters = {1.0f, 3.0f}; // Apply filters
     Point<float> query({3.0f, 4.0f});
 
-    vamana->StitchedVamanaIndexing(data, 5, 10, 15);
+    vamana->StitchedVamanaIndexing(data, 5, 10, 15, stitchedLogFile);
     auto results = vamana->StitchedSearch(data, query, filters);
 
     // Ensure the results are non-empty
@@ -296,7 +303,7 @@ TEST_F(VamanaTest, TestPerformSearch)
 
     // Index the data into Filtered and Stitched graphs
     vamana->FilteredVamanaIndexing(data);
-    vamana->StitchedVamanaIndexing(data, 5, 10, 15);
+    vamana->StitchedVamanaIndexing(data, 5, 10, 15, stitchedLogFile);
 
     // Perform search on both graphs
     auto resultsFiltered = vamana->PerformSearch(vamana->FilteredGraph, data, query, {});
