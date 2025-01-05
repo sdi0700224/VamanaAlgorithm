@@ -33,6 +33,10 @@ make test-run
 ## Clean the project
 make clean
 
-# Copyright
-GtGenerator.cpp, Distance.h, Io.h, TreadPool.h and Utils.h code used for gt generation adapted from:
-[sigmod-2024-contest](https://github.com/KevinZeng08/sigmod-2024-contest.git)
+## Copyright
+The following files used for ground truth (GT) generation have been adapted from the [SIGMOD 2024 Contest](https://github.com/KevinZeng08/sigmod-2024-contest.git):
+- `GtGenerator.cpp`
+- `Distance.h`
+- `Io.h`
+- `ThreadPool.h`
+- `Utils.h`
