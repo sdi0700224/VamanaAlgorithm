@@ -36,13 +36,19 @@ TEST_DEPS = $(TEST_OBJECTS:.o=.d)
 GTEST_OBJECT = $(BUILD_DIR)/gtest-all.o
 GTEST_MAIN_OBJECT = $(BUILD_DIR)/gtest_main.o
 
+# Standalone program
+GENERATOR_SRC = $(SRC_DIR)/GtGenerator.cpp
+GENERATOR_OBJ = $(BUILD_DIR)/GtGenerator.o
+GENERATOR_DEP = $(GENERATOR_OBJ:.o=.d)
+GENERATOR_TARGET = $(BIN_DIR)/GtGenerator
+
 # Targets
 TEST_TARGET = $(BIN_DIR)/tests
 TARGET = $(BIN_DIR)/ConsoleApp
 
 # Dataset directory
-DATASET = dummy#contest
-DATATYPE =#-release-1m
+DATASET = contest#dummy,contest
+DATATYPE =-release-1m
 
 # Arguments for the executable
 K = 50
@@ -57,9 +63,13 @@ GROUND_TRUTH = $(DATA_DIR)/$(DATASET)-gt$(DATATYPE).bin
 CXXFLAGS += $(addprefix -I, $(GTEST_INC))
 
 # Build rules
-all: $(TARGET)
+all: $(TARGET) $(GENERATOR_TARGET)
 
 $(TARGET): $(OBJECTS)
+	@mkdir -p $(BIN_DIR)
+	$(CXX) $(CXXFLAGS) -o $@ $^
+
+$(GENERATOR_TARGET): $(GENERATOR_OBJ)
 	@mkdir -p $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
@@ -96,6 +106,11 @@ $(BUILD_DIR)/%.o: $(TEST_DIR)/%.cpp
 	@mkdir -p $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
+# Compile GtGenerator and generate .d file
+$(BUILD_DIR)/GtGenerator.o: $(SRC_DIR)/GtGenerator.cpp
+	@mkdir -p $(BUILD_DIR)
+	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
+
 # Clean build files
 clean:
 	rm -rf $(BUILD_DIR) $(BIN_DIR) $(FILES)
@@ -108,12 +123,16 @@ clean-index:
 run: $(TARGET)
 	./$(TARGET) $(K) $(L) $(R) $(A) $(BASE_DATASET) $(QUERY_DATASET) $(GROUND_TRUTH)
 
+# Run GtGenerator
+run-generator: $(GENERATOR_TARGET)
+	./$(GENERATOR_TARGET) $(BASE_DATASET) $(QUERY_DATASET) $(GROUND_TRUTH)
+
 # Debug with Valgrind and run with arguments
 debug: CXXFLAGS += -O0 -g
 debug: clean $(TARGET)
 	valgrind --leak-check=full ./$(TARGET) $(K) $(L) $(R) $(A) $(BASE_DATASET) $(QUERY_DATASET) $(GROUND_TRUTH)
 
 # Include the dependency files if they exist
--include $(DEPS) $(TEST_DEPS)
+-include $(DEPS) $(TEST_DEPS) $(GENERATOR_DEP)
 
-.PHONY: all clean run debug test test-run
+.PHONY: all clean run debug test test-run run-generator
