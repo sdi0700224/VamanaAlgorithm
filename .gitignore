@@ -21,7 +21,12 @@
 .DS_Store
 Thumbs.db
 
+# Experiments
+experiments/*
+
 # Saved Indexes
-plainGraph.bin
-filteredGraph.bin
-stitchedGraph.bin
+vamanaGraph.bin
+indexes/*
+
+# Big datasets
+data/contest*
