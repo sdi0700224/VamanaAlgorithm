@@ -25,27 +25,55 @@ auto MeasureExecutionTime(const string &taskName, Func &&func) -> decltype(func(
 enum class VamanaMode
 {
     Filtered,
-    Stitched
+    Stitched,
+    Search
 };
 
 template <typename T>
 void RunVamanaProcess(Vamana<T> &vamana, const vector<Point<T>> &data, const vector<vector<float>> &queries,
-                      const ParsedArguments &args, VamanaMode mode, const string &outputPrefix)
+                      const ParsedArguments &args)
 {
-    string modeName = (mode == VamanaMode::Filtered) ? "Filtered" : "Stitched";
+    VamanaMode mode;
+    string modeName;
 
-    // Indexing
-    MeasureExecutionTime("Building " + modeName + " Vamana index", [&]()
-                         {
+    if (args.Operation == "create-f")
+    {
+        mode = VamanaMode::Filtered;
+        modeName = "Filtered";
+    }
+    else if (args.Operation == "create-s")
+    {
+        mode = VamanaMode::Stitched;
+        modeName = "Stitched";
+    }
+    else if (args.Operation == "search")
+    {
+        mode = VamanaMode::Search;
+        modeName = "Search";
+    }
+    else
+    {
+        throw std::invalid_argument("Invalid operation type");
+    }
+
+    if (mode != VamanaMode::Search)
+    {
+        // Indexing
+        MeasureExecutionTime("Building " + modeName + " Vamana index", [&]()
+                             {
                              if (mode == VamanaMode::Filtered)
-                                 vamana.FilteredVamanaIndexing(data);
-                             else
-                                 vamana.StitchedVamanaIndexing(data, args.L >> 2, args.R >> 2, args.R);
+                                 vamana.FilteredVamanaIndexing(data, args.IndexPath);
+                             else if (mode == VamanaMode::Stitched)
+                                 vamana.StitchedVamanaIndexing(data, args.L >> 2, args.R >> 2, args.R, args.IndexPath);
                              return 0; });
+        return;
+    }
+
+    vamana.LoadGraph(data, args.IndexPath);
 
     // Searching
     vector<vector<Point<T>>> allNeighbors(queries.size()); // Preallocate results with the same size as queries
-    MeasureExecutionTime("Performing " + modeName + " Vamana search", [&]()
+    MeasureExecutionTime("Performing Vamana search", [&]()
                          {
 #pragma omp parallel for schedule(dynamic)
     for (size_t i = 0; i < queries.size(); ++i)
@@ -58,16 +86,13 @@ void RunVamanaProcess(Vamana<T> &vamana, const vector<Point<T>> &data, const vec
 
         if (queryType == 0) // Vector-only query (no filter)
         {
-            neighbors = (mode == VamanaMode::Filtered) ? vamana.FilteredSearch(data, query, {})
-                                                       : vamana.StitchedSearch(data, query, {});
+            neighbors = vamana.FilteredSearch(data, query, {});
         }
         else if (queryType == 1) // Vector query (with filter)
         {
             float categoricalFilter = queryVector[1];
             unordered_set<float> queryFilters = {categoricalFilter};
-
-            neighbors = (mode == VamanaMode::Filtered) ? vamana.FilteredSearch(data, query, queryFilters)
-                                                       : vamana.StitchedSearch(data, query, queryFilters);
+            neighbors = vamana.FilteredSearch(data, query, queryFilters);
         }
         else
         {
@@ -76,16 +101,17 @@ void RunVamanaProcess(Vamana<T> &vamana, const vector<Point<T>> &data, const vec
 
         // Write results directly at the corresponding index
         allNeighbors[i] = move(neighbors);
-    }
+}
 
-    return 0; });
+return 0; });
 
     // Save results
-    ofstream resultsFile(outputPrefix + "_results.log");
+    string resultsFileName = args.Experiment + "_results.log";
+    ofstream resultsFile(resultsFileName);
     if (!resultsFile.is_open())
-        throw runtime_error("Unable to open file for writing " + modeName + " Vamana results.");
+        throw runtime_error("Unable to open file: " + resultsFileName + " for writing  Vamana results.");
 
-    resultsFile << modeName << " Vamana Search Results\n\n";
+    resultsFile << " Vamana Search Results\n\n";
     for (size_t i = 0; i < allNeighbors.size(); ++i)
     {
         resultsFile << "Query " << i << ": ";
@@ -96,7 +122,7 @@ void RunVamanaProcess(Vamana<T> &vamana, const vector<Point<T>> &data, const vec
         resultsFile << "\n";
     }
     resultsFile.close();
-    cout << modeName << " results saved to '" << outputPrefix << "_results.log'." << endl;
+    cout << "Results saved to '" << args.Experiment << "_results.log'." << endl;
 
     // Handle optional ground truth
     if (!args.GroundTruthPath.empty())
@@ -162,9 +188,10 @@ void RunVamanaProcess(Vamana<T> &vamana, const vector<Point<T>> &data, const vec
             double recallAtKTotal = totalRelevantItems > 0 ? (static_cast<double>(totalMatches) / totalRelevantItems) * 100.0 : 0.0;
 
             // Save recall results
-            ofstream recallFile(outputPrefix + "_recall.log");
+            string recallFileName = args.Experiment + "_recall.log";
+            ofstream recallFile(recallFileName);
             if (!recallFile.is_open())
-                throw runtime_error("Unable to open file for writing " + modeName + " recall results.");
+                throw runtime_error("Unable to open file: " + recallFileName + " for writing recall results.");
 
             // Output results
             recallFile << "\n=== Results ===" << endl
@@ -187,7 +214,7 @@ void RunVamanaProcess(Vamana<T> &vamana, const vector<Point<T>> &data, const vec
 
             recallFile.close();
 
-            cout << modeName << " Recall@K saved to '" << outputPrefix << "_recall.log'." << endl;
+            cout << "Recall@K saved to '" << args.Experiment << "_recall.log'." << endl;
         }
         else
         {
@@ -195,7 +222,7 @@ void RunVamanaProcess(Vamana<T> &vamana, const vector<Point<T>> &data, const vec
         }
 
         // Open a file for writing the detailed report
-        ofstream reportFile(outputPrefix + "_query_report.log");
+        ofstream reportFile(args.Experiment + "_query_report.log");
         if (!reportFile.is_open())
         {
             throw runtime_error("Error: Unable to open report file for writing.");
@@ -257,7 +284,7 @@ void RunVamanaProcess(Vamana<T> &vamana, const vector<Point<T>> &data, const vec
 
         // Close the report file
         reportFile.close();
-        cout << "Detailed query comparison report saved to '" << outputPrefix << "_query_report.log'." << endl;
+        cout << "Detailed query comparison report saved to '" << args.Experiment << "_query_report.log'." << endl;
     }
     else
     {
@@ -280,8 +307,7 @@ int main(int argc, char *argv[])
         auto queries = MeasureExecutionTime("Loading query dataset", [&]()
                                             { return loader.LoadQuerySet(args.QueryDatasetPath); });
 
-        RunVamanaProcess(vamana, data, queries, args, VamanaMode::Filtered, "filtered");
-        RunVamanaProcess(vamana, data, queries, args, VamanaMode::Stitched, "stitched");
+        RunVamanaProcess(vamana, data, queries, args);
 
         return EXIT_SUCCESS;
     }
