@@ -16,6 +16,9 @@ struct ParsedArguments
     string BaseDatasetPath;
     string QueryDatasetPath;
     string GroundTruthPath;
+    string Operation;
+    string IndexPath;
+    string Experiment;
 };
 
 class ArgumentParser
