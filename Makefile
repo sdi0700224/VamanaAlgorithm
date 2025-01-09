@@ -66,12 +66,17 @@ GROUND_TRUTH = $(DATA_DIR)/$(DATASET)-gt$(DATATYPE).bin
 GRAPH = $(INDEX_DIR)/$(GRAPH_NAME).bin
 EXPERIMENT = $(EXP_DIR)/$(EXP_NAME)
 
-
 # Add Google Test include directories
 CXXFLAGS += $(addprefix -I, $(GTEST_INC))
 
+# Ensure necessary directories exist
+ensure-dirs:
+	@mkdir -p $(DATA_DIR)
+	@mkdir -p $(EXP_DIR)
+	@mkdir -p $(INDEX_DIR)
+
 # Build rules
-all: $(TARGET) $(GENERATOR_TARGET)
+all: ensure-dirs $(TARGET) $(GENERATOR_TARGET)
 
 $(TARGET): $(OBJECTS)
 	@mkdir -p $(BIN_DIR)
@@ -91,7 +96,7 @@ $(GTEST_MAIN_OBJECT): $(GTEST_MAIN_SRC)
 	$(CXX) $(CXXFLAGS) -MMD -MP -c $< -o $@
 
 # Build tests
-test-build: $(TEST_OBJECTS) $(NON_APP_OBJECTS) $(GTEST_OBJECT) $(GTEST_MAIN_OBJECT)
+test-build: ensure-dirs $(TEST_OBJECTS) $(NON_APP_OBJECTS) $(GTEST_OBJECT) $(GTEST_MAIN_OBJECT)
 	@mkdir -p $(BIN_DIR)
 	$(CXX) $(CXXFLAGS) -o $(TEST_TARGET) $^ -pthread
 	@echo "Tests built successfully."
@@ -125,21 +130,21 @@ clean:
 
 # Clean experiment files
 clean-exp:
-	rm -f $(EXP_DIR)/*
+	rm -rf $(EXP_DIR)
 
 # Clean index files
 clean-ind:
-	rm -f $(INDEX_DIR)/*
+	rm -rf $(INDEX_DIR)
 
 # Clean all
 clean-all: clean clean-exp clean-ind
 
 # Run the program with arguments
-run: $(TARGET)
+run: ensure-dirs $(TARGET)
 	./$(TARGET) $(K) $(L) $(R) $(A) $(BASE_DATASET) $(QUERY_DATASET) $(GROUND_TRUTH) $(OPERATION) $(GRAPH) $(EXPERIMENT)
 
 # Run GtGenerator
-run-generator: $(GENERATOR_TARGET)
+run-generator: ensure-dirs $(GENERATOR_TARGET)
 	./$(GENERATOR_TARGET) $(BASE_DATASET) $(QUERY_DATASET) $(GROUND_TRUTH)
 
 # Debug with Valgrind and run with arguments
@@ -150,4 +155,4 @@ debug: clean $(TARGET)
 # Include the dependency files if they exist
 -include $(DEPS) $(TEST_DEPS) $(GENERATOR_DEP)
 
-.PHONY: all clean run debug test test-run run-generator
+.PHONY: all clean run debug test test-run run-generator ensure-dirs
