@@ -11,7 +11,7 @@
 
 template <typename T>
 Vamana<T>::Vamana(int k, int L, int R, double a)
-    : K(k), L(L), R(R), A(a), VamanaGraph(), FilteredGraph(), StitchedGraph(), Searcher(), Pruner() {}
+    : K(k), L(L), R(R), A(a), VamanaGraph(), Searcher(), Pruner() {}
 
 template <typename T>
 void Vamana<T>::UpdateProgressBar(size_t current, size_t total, const string &message) const
@@ -28,21 +28,34 @@ void Vamana<T>::UpdateProgressBar(size_t current, size_t total, const string &me
 }
 
 template <typename T>
-void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data, bool loadSaveIndex)
+bool Vamana<T>::LoadGraph(const vector<Point<T>> &data, const string &filePath)
 {
-    // Find medoid of each filter using the filterMap for efficiency
     if (FilterMedoids.empty())
     {
         FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
     }
 
-    if (loadSaveIndex && filesystem::exists(FilteredGraphName))
+    if (filesystem::exists(filePath))
     {
-        ifstream file(FilteredGraphName, ios::binary);
-        FilteredGraph.Deserialize(file);
+        ifstream file(filePath, ios::binary);
+        SearchGraph.Deserialize(file);
         file.close();
-        cout << "Graph successfully loaded from '" << FilteredGraphName << "'." << endl;
-        return;
+        cout << "Graph successfully loaded from '" << filePath << "'." << endl;
+        return true;
+    }
+
+    cerr << "Graph couldn't be loaded from '" << filePath << "'." << endl;
+    return false;
+}
+
+template <typename T>
+void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data, const string &filePath)
+{
+    Graph<T> filteredGraph;
+    // Find medoid of each filter using the filterMap for efficiency
+    if (FilterMedoids.empty())
+    {
+        FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
     }
 
     // Generate a random permutation of the dataset
@@ -66,16 +79,16 @@ void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data, bool loadSa
 
         // Perform FilteredGreedySearch relative to the current filter
         auto [_, visited] =
-            Searcher.FilteredGreedySearch(FilteredGraph, currentPoint,
+            Searcher.FilteredGreedySearch(filteredGraph, currentPoint,
                                           {currentFilter}, {startNode}, 0, L);
 
         // Apply RobustPrune to visited nodes
-        Pruner.FilteredRobustPrune(FilteredGraph, currentPoint, visited, A, R);
+        Pruner.FilteredRobustPrune(filteredGraph, currentPoint, visited, A, R);
 
         vector<Point<T>> neighbors;
 #pragma omp critical(filteredCS)
         {
-            neighbors = FilteredGraph.GetNeighbors(currentPoint);
+            neighbors = filteredGraph.GetNeighbors(currentPoint);
         }
 
         // Update out-neighbors of the current point
@@ -84,7 +97,7 @@ void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data, bool loadSa
             vector<Point<T>> outNeighbors;
 #pragma omp critical(filteredCS)
             {
-                outNeighbors = FilteredGraph.GetNeighbors(neighbor);
+                outNeighbors = filteredGraph.GetNeighbors(neighbor);
             }
             if (find(outNeighbors.begin(), outNeighbors.end(), currentPoint) == outNeighbors.end())
             {
@@ -92,13 +105,13 @@ void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data, bool loadSa
                 if (outNeighbors.size() + 1 > static_cast<size_t>(R))
                 {
                     outNeighbors.push_back(currentPoint);
-                    Pruner.FilteredRobustPrune(FilteredGraph, neighbor, outNeighbors, A, R);
+                    Pruner.FilteredRobustPrune(filteredGraph, neighbor, outNeighbors, A, R);
                 }
                 else
                 {
 #pragma omp critical(filteredCS)
                     {
-                        FilteredGraph.AddEdge(neighbor, currentPoint);
+                        filteredGraph.AddEdge(neighbor, currentPoint);
                     }
                 }
             }
@@ -114,12 +127,9 @@ void Vamana<T>::FilteredVamanaIndexing(const vector<Point<T>> &data, bool loadSa
         }
     }
 
-    if (loadSaveIndex)
-    {
-        ofstream file(FilteredGraphName, ios::binary);
-        FilteredGraph.Serialize(file);
-        file.close();
-    }
+    ofstream file(filePath, ios::binary);
+    filteredGraph.Serialize(file);
+    file.close();
 }
 
 template <typename T>
@@ -235,7 +245,7 @@ template <typename T>
 vector<Point<T>> Vamana<T>::FilteredSearch(const vector<Point<T>> &data, const Point<T> &query, const unordered_set<T> &filters) const
 {
     return PerformSearch(
-        FilteredGraph,
+        SearchGraph,
         data,
         query,
         filters);
@@ -383,21 +393,13 @@ vector<Point<T>> Vamana<T>::Search(const Point<T> &query, int k) const
 }
 
 template <typename T>
-void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small, int R_small, int R_stitched, string logFileName, bool loadSaveIndex)
+void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small, int R_small, int R_stitched, const string &filePath, string logFileName)
 {
+    Graph<T> stitchedGraph;
     // Find FilterMedoids, to be able to search later
     if (FilterMedoids.empty())
     {
         FilterMedoids = FindFilterMedoids(CreateFilterMap(data), 0);
-    }
-
-    if (loadSaveIndex && filesystem::exists(StitchedGraphName))
-    {
-        ifstream file(StitchedGraphName, ios::binary);
-        StitchedGraph.Deserialize(file);
-        file.close();
-        cout << "Graph successfully loaded from '" << StitchedGraphName << "'." << endl;
-        return;
     }
 
     // Create a map of filters to point groups
@@ -467,7 +469,7 @@ void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small
 // Synchronize read access to StitchedGraph
 #pragma omp critical(stitchedCS)
             {
-                existingNeighbors = StitchedGraph.GetNeighbors(point);
+                existingNeighbors = stitchedGraph.GetNeighbors(point);
             }
 
             const auto &newNeighbors = vamana.VamanaGraph.GetNeighbors(point);
@@ -482,7 +484,7 @@ void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small
 // Synchronize write access to StitchedGraph
 #pragma omp critical(stitchedCS)
             {
-                StitchedGraph.SetNeighbors(point, mergedNeighbors);
+                stitchedGraph.SetNeighbors(point, mergedNeighbors);
             }
         }
 
@@ -499,26 +501,13 @@ void Vamana<T>::StitchedVamanaIndexing(const vector<Point<T>> &data, int L_small
     RobustPruner<T> pruner;
     for (const auto &point : data)
     {
-        const auto &neighbors = StitchedGraph.GetNeighbors(point);
-        pruner.FilteredRobustPrune(StitchedGraph, point, neighbors, A, R_stitched);
+        const auto &neighbors = stitchedGraph.GetNeighbors(point);
+        pruner.FilteredRobustPrune(stitchedGraph, point, neighbors, A, R_stitched);
     }
 
     logFile.close();
 
-    if (loadSaveIndex)
-    {
-        ofstream file(StitchedGraphName, ios::binary);
-        StitchedGraph.Serialize(file);
-        file.close();
-    }
-}
-
-template <typename T>
-vector<Point<T>> Vamana<T>::StitchedSearch(const vector<Point<T>> &data, const Point<T> &query, const unordered_set<T> &filters) const
-{
-    return this->PerformSearch(
-        StitchedGraph,
-        data,
-        query,
-        filters);
+    ofstream file(filePath, ios::binary);
+    stitchedGraph.Serialize(file);
+    file.close();
 }
