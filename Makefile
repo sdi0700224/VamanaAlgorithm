@@ -58,7 +58,7 @@ K = 50
 L = 100
 R = 60#30
 A = 1.2#1.1
-OPERATION = search#search,create-f,create-s
+OPERATION = create-f#create-f,create-s,search
 
 BASE_DATASET = $(DATA_DIR)/$(DATASET)-data$(DATATYPE).bin
 QUERY_DATASET = $(DATA_DIR)/$(DATASET)-queries$(DATATYPE).bin
@@ -130,6 +130,9 @@ clean-exp:
 # Clean index files
 clean-ind:
 	rm -f $(INDEX_DIR)/*
+
+# Clean all
+clean-all: clean clean-exp clean-ind
 
 # Run the program with arguments
 run: $(TARGET)
