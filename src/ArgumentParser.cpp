@@ -111,7 +111,7 @@ void ArgumentParser::DisplayParsedArguments(const ParsedArguments &args)
     cout << " - Index Path: " << args.IndexPath << endl;
 
     if (!args.Experiment.empty())
-        cout << " - Search Name: " << args.Experiment << endl;
+        cout << " - Experiment Path: " << args.Experiment << endl;
 }
 
 void ArgumentParser::Validate(const ParsedArguments &args)
