@@ -150,11 +150,11 @@ This report provides an in-depth analysis of the performance metrics observed in
 1. **Thread Configuration**:
    - Use 8 threads as a default configuration.
    - For stitched searches with large filter groups, consider 16 threads.
-2. **K and L Selection**:
-   - Smaller K values are optimal for timing-critical applications.
-   - Larger K values are essential for recall-intensive tasks.
+2. **R and A Selection**:
+   - Smaller R and A values are optimal for timing-critical applications.
+   - Larger R and A values are essential for recall-intensive tasks.
 3. **Graph Type**:
-   - Prefer stitched graphs for time-sensitive tasks.
+   - Prefer stitched graphs for time-sensitive tasks if filter distribution is even.
    - Use filtered graphs for applications requiring maximum recall.
 
 ---
