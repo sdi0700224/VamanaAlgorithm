@@ -45,20 +45,20 @@ for R in "${GRAPH_R_VALUES[@]}"; do
             L=$((K * GRAPH_L_MULTIPLIER))
 
             # Create filtered graph
-            FILTERED_GRAPH_FILE="${GRAPH_DIR}/filtered_graph_K${K}_R${R}_A${ALPHA}.bin"
-            FILTERED_GRAPH_EXP="${EXP_DIR}/filtered_graph_K${K}_R${R}_A${ALPHA}"
+            FILTERED_GRAPH_FILE="${GRAPH_DIR}/filtered_K${K}_L${L}_R${R}_A${ALPHA}_threads_8.bin"
+            FILTERED_GRAPH_EXP="${EXP_DIR}/filtered_K${K}_L${L}_R${R}_A${ALPHA}_threads_8"
             echo "Creating Filtered Graph (K=${K}, L=${L}, R=${R}, Alpha=${ALPHA})..."
             ./bin/ConsoleApp $K $L $R $ALPHA "$BASE_DATASET" "$QUERY_DATASET" "$GROUND_TRUTH" "create-f" "$FILTERED_GRAPH_FILE" "$FILTERED_GRAPH_EXP"
 
             # Create stitched graph
-            STITCHED_GRAPH_FILE="${GRAPH_DIR}/stitched_graph_K${K}_R${R}_A${ALPHA}.bin"
-            STITCHED_GRAPH_EXP="${EXP_DIR}/stitched_graph_K${K}_R${R}_A${ALPHA}"
+            STITCHED_GRAPH_FILE="${GRAPH_DIR}/stitched_K${K}_L${L}_R${R}_A${ALPHA}_threads_8.bin"
+            STITCHED_GRAPH_EXP="${EXP_DIR}/stitched_K${K}_L${L}_R${R}_A${ALPHA}_threads_8"
             echo "Creating Stitched Graph (K=${K}, L=${L}, R=${R}, Alpha=${ALPHA})..."
             ./bin/ConsoleApp $K $L $R $ALPHA "$BASE_DATASET" "$QUERY_DATASET" "$GROUND_TRUTH" "create-s" "$STITCHED_GRAPH_FILE" "$STITCHED_GRAPH_EXP"
 
             # Run search experiments for smaller graphs
-            SEARCH_EXP_FILTERED="${EXP_DIR}/search_filtered_K${SEARCH_FIXED_K}_R${R}_A${ALPHA}"
-            SEARCH_EXP_STITCHED="${EXP_DIR}/search_stitched_K${SEARCH_FIXED_K}_R${R}_A${ALPHA}"
+            SEARCH_EXP_FILTERED="${EXP_DIR}/search_filtered_K${SEARCH_FIXED_K}_L${SEARCH_FIXED_L}_R${R}_A${ALPHA}_threads_8"
+            SEARCH_EXP_STITCHED="${EXP_DIR}/search_stitched_K${SEARCH_FIXED_K}_L${SEARCH_FIXED_L}_R${R}_A${ALPHA}_threads_8"
 
             echo "Running Search Experiment (Filtered Graph: K=${SEARCH_FIXED_K})..."
             ./bin/ConsoleApp $SEARCH_FIXED_K $SEARCH_FIXED_L $R $ALPHA "$BASE_DATASET" "$QUERY_DATASET" "$GROUND_TRUTH" "search" "$FILTERED_GRAPH_FILE" "$SEARCH_EXP_FILTERED"
@@ -75,14 +75,14 @@ for THREADS in "${THREAD_COUNTS[@]}"; do
     export OMP_NUM_THREADS=$THREADS
 
     # Create filtered graph
-    FINAL_FILTERED_GRAPH_FILE="${GRAPH_DIR}/filtered_graph_K${FINAL_GRAPH_K}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}.bin"
-    FINAL_FILTERED_EXP="${EXP_DIR}/filtered_graph_K${FINAL_GRAPH_K}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}"
+    FINAL_FILTERED_GRAPH_FILE="${GRAPH_DIR}/filtered_K${FINAL_GRAPH_K}_L${FINAL_GRAPH_L}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}.bin"
+    FINAL_FILTERED_EXP="${EXP_DIR}/filtered_K${FINAL_GRAPH_K}_L${FINAL_GRAPH_L}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}"
     echo "Creating Final Filtered Graph (Threads=${THREADS})..."
     ./bin/ConsoleApp $FINAL_GRAPH_K $FINAL_GRAPH_L $FINAL_GRAPH_R $FINAL_GRAPH_ALPHA "$BASE_DATASET" "$QUERY_DATASET" "$GROUND_TRUTH" "create-f" "$FINAL_FILTERED_GRAPH_FILE" "$FINAL_FILTERED_EXP"
 
     # Create stitched graph
-    FINAL_STITCHED_GRAPH_FILE="${GRAPH_DIR}/stitched_graph_K${FINAL_GRAPH_K}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}.bin"
-    FINAL_STITCHED_EXP="${EXP_DIR}/stitched_graph_K${FINAL_GRAPH_K}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}"
+    FINAL_STITCHED_GRAPH_FILE="${GRAPH_DIR}/stitched_K${FINAL_GRAPH_K}_L${FINAL_GRAPH_L}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}.bin"
+    FINAL_STITCHED_EXP="${EXP_DIR}/stitched_K${FINAL_GRAPH_K}_L${FINAL_GRAPH_L}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}"
     echo "Creating Final Stitched Graph (Threads=${THREADS})..."
     ./bin/ConsoleApp $FINAL_GRAPH_K $FINAL_GRAPH_L $FINAL_GRAPH_R $FINAL_GRAPH_ALPHA "$BASE_DATASET" "$QUERY_DATASET" "$GROUND_TRUTH" "create-s" "$FINAL_STITCHED_GRAPH_FILE" "$FINAL_STITCHED_EXP"
 done
@@ -96,14 +96,14 @@ for THREADS in "${THREAD_COUNTS[@]}"; do
         VARIED_L=$((VARIED_K * 2))
 
         # Filtered graph experiment
-        FINAL_FILTERED_GRAPH_FILE="${GRAPH_DIR}/filtered_graph_K${FINAL_GRAPH_K}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}.bin"
-        SEARCH_EXP_NAME="${EXP_DIR}/search_filtered_K${VARIED_K}_threads_${THREADS}"
+        FINAL_FILTERED_GRAPH_FILE="${GRAPH_DIR}/filtered_K${FINAL_GRAPH_K}_L${FINAL_GRAPH_L}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}.bin"
+        SEARCH_EXP_NAME="${EXP_DIR}/search_filtered_K${VARIED_K}_L${VARIED_L}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}"
         echo "Running Search Experiment (Filtered Final Graph: K=${VARIED_K}, Threads=${THREADS})..."
         ./bin/ConsoleApp $VARIED_K $VARIED_L $FINAL_GRAPH_R $FINAL_GRAPH_ALPHA "$BASE_DATASET" "$QUERY_DATASET" "$GROUND_TRUTH" "search" "$FINAL_FILTERED_GRAPH_FILE" "$SEARCH_EXP_NAME"
 
         # Stitched graph experiment
-        FINAL_STITCHED_GRAPH_FILE="${GRAPH_DIR}/stitched_graph_K${FINAL_GRAPH_K}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}.bin"
-        SEARCH_EXP_NAME="${EXP_DIR}/search_stitched_K${VARIED_K}_threads_${THREADS}"
+        FINAL_STITCHED_GRAPH_FILE="${GRAPH_DIR}/stitched_K${FINAL_GRAPH_K}_L${FINAL_GRAPH_L}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}.bin"
+        SEARCH_EXP_NAME="${EXP_DIR}/search_stitched_K${VARIED_K}_L${VARIED_L}_R${FINAL_GRAPH_R}_A${FINAL_GRAPH_ALPHA}_threads_${THREADS}"
         echo "Running Search Experiment (Stitched Final Graph: K=${VARIED_K}, Threads=${THREADS})..."
         ./bin/ConsoleApp $VARIED_K $VARIED_L $FINAL_GRAPH_R $FINAL_GRAPH_ALPHA "$BASE_DATASET" "$QUERY_DATASET" "$GROUND_TRUTH" "search" "$FINAL_STITCHED_GRAPH_FILE" "$SEARCH_EXP_NAME"
     done
