@@ -86,7 +86,7 @@ The implementation improves recall for unfiltered queries by incorporating neare
 ### Results:
 | Query Type                | Recall Before (%) | Recall After (%) |
 |---------------------------|-------------------|------------------|
-| Type 0 (Unfiltered)       | 36 - 40           | 97 - 99          |
+| Type 0 (Unfiltered)       | 30 - 40           | 80 - 100         |
 
 
 ---
