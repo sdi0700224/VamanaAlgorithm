@@ -22,7 +22,7 @@ This report provides an in-depth analysis of the performance metrics observed in
   - Filtered graph creation scales poorly with increasing thread count beyond 8 threads for larger configurations.
 
 #### 1 Million Dataset:
-![Filtered Graph Creation Timing (1M)](create_f_timing_1m.png)
+![Filtered Graph Creation Timing (1M)](plots/create_f_timing_1m.png)
 
 - **Observation**:
   - **Higher K values**:
@@ -44,7 +44,7 @@ This report provides an in-depth analysis of the performance metrics observed in
   - Timing differences between 8 and 16 threads are minimal.
 
 #### 1 Million Dataset:
-![Stitched Graph Creation Timing (1M)](create_s_timing_1m.png)
+![Stitched Graph Creation Timing (1M)](plots/create_s_timing_1m.png)
 
 - **Observation**:
   - Stitched graph creation remains faster than filtered graph creation for similar configurations, peaking at 13.2 million ms with 8 threads for K=100.
@@ -66,7 +66,7 @@ This report provides an in-depth analysis of the performance metrics observed in
   - Smaller K values demonstrate competitive recall (~90%), showcasing robustness.
 
 #### 1 Million Dataset:
-![Filtered Search Recall (1M)](filtered_search_recall_1m.png)
+![Filtered Search Recall (1M)](plots/filtered_search_recall_1m.png)
 
 - **Observation**:
   - Recall achieves 100% for larger K values (e.g., K=100).
@@ -85,7 +85,7 @@ This report provides an in-depth analysis of the performance metrics observed in
   - Timing increases with larger K values but remains manageable with 8 threads.
 
 #### 1 Million Dataset:
-![Filtered Search Timing (1M)](filtered_search_timing_1m.png)
+![Filtered Search Timing (1M)](plots/filtered_search_timing_1m.png)
 
 - **Observation**:
   - Timing significantly increases for larger K values, reaching several hundred thousand ms for K=100.
@@ -104,7 +104,7 @@ This report provides an in-depth analysis of the performance metrics observed in
   - Recall performance remains robust, slightly lower than filtered recall but still above 95%.
 
 #### 1 Million Dataset:
-![Stitched Search Recall (1M)](stitched_search_recall_1m.png)
+![Stitched Search Recall (1M)](plots/stitched_search_recall_1m.png)
 
 - **Observation**:
   - Recall remains slightly lower than filtered recall but achieves above 98% for larger K values.
@@ -123,7 +123,7 @@ This report provides an in-depth analysis of the performance metrics observed in
   - Timing is generally lower than filtered search, making stitched graphs time-efficient for most configurations.
 
 #### 1 Million Dataset:
-![Stitched Search Timing (1M)](stitched_search_timing_1m.png)
+![Stitched Search Timing (1M)](plots/stitched_search_timing_1m.png)
 
 - **Observation**:
   - Timing can exceed filtered search if filter groups are excessively large.
