@@ -1,6 +1,6 @@
 # Compiler and flags
 CXX = g++
-CXXFLAGS = -Iinclude -std=c++23 -O3 -MMD -MP -g -Wall -Werror -Wunused -Wextra -fopenmp
+CXXFLAGS = -Iinclude -std=c++17 -O3 -MMD -MP -g -Wall -Werror -Wunused -Wextra -fopenmp
 
 # Directories
 SRC_DIR = src
@@ -58,7 +58,7 @@ K = 50
 L = 100
 R = 60#30
 A = 1.2#1.1
-OPERATION = create-f#create-f,create-s,search
+OPERATION = search	#create-f,create-s,search
 
 BASE_DATASET = $(DATA_DIR)/$(DATASET)-data$(DATATYPE).bin
 QUERY_DATASET = $(DATA_DIR)/$(DATASET)-queries$(DATATYPE).bin
